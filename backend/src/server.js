@@ -1,7 +1,11 @@
 import express from "express";
+import { startServer } from "./utils/startServer.js";
 
 const app = express();
 
-app.listen(5001, () => {
-  console.log("Server is up and running on PORT:5001");
+app.get("/", (req, res) => {
+  res.send("Hello from server");
 });
+
+// Start the process
+startServer(app);
