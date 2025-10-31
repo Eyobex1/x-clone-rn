@@ -6,10 +6,13 @@ export const startServer = async (app) => {
     // First connect to the database
     await connectDB();
 
-    // Then start the server
-    app.listen(ENV.PORT, () => {
-      console.log(`✅ Server is up and running on PORT: ${ENV.PORT}`);
-    });
+    // listen for local development
+    if (ENV.NODE_ENV !== "production") {
+      // Then start the server
+      app.listen(ENV.PORT, () => {
+        console.log(`✅ Server is up and running on PORT: ${ENV.PORT}`);
+      });
+    }
   } catch (error) {
     console.error("❌ Failed to start the server:", error);
     process.exit(1); // Exit the process if DB connection fails

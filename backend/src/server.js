@@ -31,3 +31,6 @@ app.use((err, req, res, next) => {
 
 // Start the process
 startServer(app);
+
+// export for vercel
+export default app;
