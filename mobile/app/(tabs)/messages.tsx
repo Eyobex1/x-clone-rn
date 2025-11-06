@@ -256,5 +256,4 @@ const MessagesScreen = () => {
     </SafeAreaView>
   );
 };
-
 export default MessagesScreen;
