@@ -1,23 +1,44 @@
 import axios, { AxiosInstance } from "axios";
 import { useAuth } from "@clerk/clerk-expo";
 
-const API_BASE_URL = "https://x-clone-rn-mauve.vercel.app/api";
+const API_BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL || "https://x-clone-rn-mauve.vercel.app/api";
 
-// this will basically create an authenticated api, pass the token into our headers
 export const createApiClient = (
   getToken: () => Promise<string | null>
 ): AxiosInstance => {
   const api = axios.create({ baseURL: API_BASE_URL });
 
   api.interceptors.request.use(async (config) => {
-    const token = await getToken();
+    try {
+      const token = await getToken();
+      if (token) config.headers.Authorization = `Bearer ${token}`;
+      else console.warn("No token available, skipping Authorization header");
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      // Browser-like User-Agent to bypass bot detection
+      config.headers["User-Agent"] =
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/16A366";
+    } catch (err) {
+      console.error("Error fetching token:", err);
     }
-
     return config;
   });
+
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (axios.isAxiosError(error)) {
+        console.error("Axios error:", {
+          message: error.message,
+          status: error.response?.status,
+          data: error.response?.data,
+        });
+      } else {
+        console.error("Unexpected error:", error);
+      }
+      return Promise.reject(error);
+    }
+  );
 
   return api;
 };
@@ -27,6 +48,7 @@ export const useApiClient = (): AxiosInstance => {
   return createApiClient(getToken);
 };
 
+// ===== API ENDPOINTS =====
 export const userApi = {
   syncUser: (api: AxiosInstance) => api.post("/users/sync"),
   getCurrentUser: (api: AxiosInstance) => api.get("/users/me"),

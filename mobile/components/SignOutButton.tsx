@@ -1,7 +1,6 @@
 import { useSignOut } from "@/hooks/useSignOut";
 import { Feather } from "@expo/vector-icons";
 import { TouchableOpacity } from "react-native";
-
 const SignOutButton = () => {
   const { handleSignOut } = useSignOut();
   return (
@@ -10,5 +9,4 @@ const SignOutButton = () => {
     </TouchableOpacity>
   );
 };
-
 export default SignOutButton;
