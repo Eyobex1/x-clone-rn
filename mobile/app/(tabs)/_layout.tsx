@@ -18,9 +18,8 @@ const TabsLayout = () => {
         tabBarStyle: {
           backgroundColor: "#fff",
           borderTopWidth: 1,
-          borderTopColor: "E1E8ED",
+          borderTopColor: "#E1E8ED",
           height: 50 + insets.bottom,
-          paddingTop: 8,
         },
         headerShown: false,
       }}
@@ -28,47 +27,46 @@ const TabsLayout = () => {
       <Tabs.Screen
         name="index"
         options={{
-          title: "",
+          title: "Home",
           tabBarIcon: ({ color, size }) => (
             <Feather name="home" size={size} color={color} />
           ),
         }}
       />
-
       <Tabs.Screen
         name="search"
         options={{
-          title: "",
+          title: "Search",
+
           tabBarIcon: ({ color, size }) => (
             <Feather name="search" size={size} color={color} />
           ),
         }}
       />
-
       <Tabs.Screen
         name="notifications"
         options={{
-          title: "",
+          title: "Notifications",
+
           tabBarIcon: ({ color, size }) => (
             <Feather name="bell" size={size} color={color} />
           ),
         }}
       />
-
       <Tabs.Screen
         name="messages"
         options={{
-          title: "",
+          title: "Messages",
+
           tabBarIcon: ({ color, size }) => (
             <Feather name="mail" size={size} color={color} />
           ),
         }}
       />
-
       <Tabs.Screen
         name="profile"
         options={{
-          title: "",
+          title: "Profile",
           tabBarIcon: ({ color, size }) => (
             <Feather name="user" size={size} color={color} />
           ),
@@ -77,5 +75,4 @@ const TabsLayout = () => {
     </Tabs>
   );
 };
-
 export default TabsLayout;
