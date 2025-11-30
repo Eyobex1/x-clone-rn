@@ -86,12 +86,12 @@ export const followUser = asyncHandler(async (req, res) => {
       $pull: { followers: currentUser._id },
     });
   } else {
-    // follow
+    // follow – prevent duplicates using $addToSet
     await User.findByIdAndUpdate(currentUser._id, {
-      $push: { following: targetUserId },
+      $addToSet: { following: targetUserId },
     });
     await User.findByIdAndUpdate(targetUserId, {
-      $push: { followers: currentUser._id },
+      $addToSet: { followers: currentUser._id },
     });
 
     // create notification
