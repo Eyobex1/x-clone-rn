@@ -65,4 +65,5 @@ export interface UserProfile {
   following?: string[]; // array of user IDs
   createdAt: string;
   posts?: Post[]; // optional, user's posts
+  clerkId: string;
 }

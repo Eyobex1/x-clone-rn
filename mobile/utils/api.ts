@@ -54,6 +54,9 @@ export const userApi = {
   getCurrentUser: (api: AxiosInstance) => api.get("/users/me"),
   updateProfile: (api: AxiosInstance, data: any) =>
     api.put("/users/profile", data),
+
+  followUser: (api: AxiosInstance, targetUserId: string) =>
+    api.post(`/users/follow/${targetUserId}`),
 };
 
 export const postApi = {
