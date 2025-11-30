@@ -44,14 +44,12 @@ const userSchema = new mongoose.Schema(
     },
     followers: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        type: String, // ✅ store Clerk IDs as string
       },
     ],
     following: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        type: String, // ✅ store Clerk IDs as string
       },
     ],
   },
