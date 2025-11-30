@@ -1,3 +1,6 @@
+// types.ts
+
+// ===== User =====
 export interface User {
   _id: string;
   username: string;
@@ -6,6 +9,7 @@ export interface User {
   profilePicture?: string;
 }
 
+// ===== Comment =====
 export interface Comment {
   _id: string;
   content: string;
@@ -13,16 +17,18 @@ export interface Comment {
   user: User;
 }
 
+// ===== Post =====
 export interface Post {
   _id: string;
   content: string;
   image?: string;
   createdAt: string;
   user: User;
-  likes: string[];
+  likes: string[]; // array of user IDs
   comments: Comment[];
 }
 
+// ===== Notification =====
 export interface Notification {
   _id: string;
   from: {
@@ -43,4 +49,20 @@ export interface Notification {
     content: string;
   };
   createdAt: string;
+}
+
+// ===== UserProfile =====
+export interface UserProfile {
+  _id: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  bio?: string;
+  location?: string;
+  profilePicture?: string;
+  bannerImage?: string;
+  followers?: string[]; // array of user IDs
+  following?: string[]; // array of user IDs
+  createdAt: string;
+  posts?: Post[]; // optional, user's posts
 }

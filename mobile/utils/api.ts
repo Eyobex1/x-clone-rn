@@ -72,3 +72,10 @@ export const commentApi = {
   createComment: (api: AxiosInstance, postId: string, content: string) =>
     api.post(`/comments/post/${postId}`, { content }),
 };
+
+export const searchApi = {
+  search: (api: AxiosInstance, query: string) =>
+    api.get(`/search`, {
+      params: { query },
+    }),
+};
