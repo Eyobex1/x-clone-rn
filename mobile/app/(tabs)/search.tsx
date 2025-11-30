@@ -6,11 +6,14 @@ import {
   Text,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState } from "react";
 import { useSearchUsers } from "@/hooks/useSearchUsers";
 import { useRouter } from "expo-router";
+
+const DEFAULT_AVATAR = "https://via.placeholder.com/150";
 
 const TRENDING_TOPICS = [
   { topic: "#Eyob Tekle", tweets: "1.3M" },
@@ -52,7 +55,7 @@ const SearchScreen = () => {
                 users.map((user: any) => (
                   <TouchableOpacity
                     key={user._id}
-                    className="py-3 border-b border-gray-100"
+                    className="flex-row items-center py-3 border-b border-gray-100"
                     onPress={() =>
                       router.push({
                         pathname: "/profile/[username]",
@@ -60,10 +63,18 @@ const SearchScreen = () => {
                       })
                     }
                   >
-                    <Text className="font-bold text-gray-900 text-lg">
-                      {user.username}
-                    </Text>
-                    <Text className="text-gray-500 text-sm">{user.name}</Text>
+                    <Image
+                      source={{ uri: user.profilePicture || DEFAULT_AVATAR }}
+                      className="w-12 h-12 rounded-full mr-3"
+                    />
+                    <View>
+                      <Text className="font-bold text-gray-900 text-lg">
+                        {user.firstName} {user.lastName}
+                      </Text>
+                      <Text className="text-gray-500 text-sm">
+                        @{user.username}
+                      </Text>
+                    </View>
                   </TouchableOpacity>
                 ))
               ) : (
