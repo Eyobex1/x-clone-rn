@@ -22,6 +22,8 @@ export interface Post {
   _id: string;
   content: string;
   image?: string;
+  imageWidth?: number;
+  imageHeight?: number;
   createdAt: string;
   user: User;
   likes: string[]; // array of user IDs

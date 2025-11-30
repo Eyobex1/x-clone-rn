@@ -42,6 +42,12 @@ const PostCard = ({
     });
   };
 
+  // Calculate aspect ratio for the image
+  const imageAspectRatio =
+    post.imageWidth && post.imageHeight
+      ? post.imageWidth / post.imageHeight
+      : 1;
+
   return (
     <View className="border-b border-gray-100 bg-white">
       <View className="flex-row p-4">
@@ -81,11 +87,16 @@ const PostCard = ({
             </Text>
           )}
 
-          {/* Post image */}
+          {/* Post image with dynamic aspect ratio */}
           {post.image && (
             <Image
               source={{ uri: post.image }}
-              className="w-full h-48 rounded-2xl mb-3"
+              style={{
+                width: "100%",
+                aspectRatio: imageAspectRatio,
+                borderRadius: 16,
+                marginBottom: 12,
+              }}
               resizeMode="cover"
             />
           )}
@@ -117,9 +128,7 @@ const PostCard = ({
                 <Feather name="heart" size={18} color="#657786" />
               )}
               <Text
-                className={`text-sm ml-2 ${
-                  isLiked ? "text-red-500" : "text-gray-500"
-                }`}
+                className={`text-sm ml-2 ${isLiked ? "text-red-500" : "text-gray-500"}`}
               >
                 {formatNumber(post.likes?.length || 0)}
               </Text>
