@@ -63,14 +63,15 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 export const followUser = asyncHandler(async (req, res) => {
-  const { userId } = getAuth(req);
-  const { targetUserId } = req.params;
+  const { userId: currentUserId } = getAuth(req); // Clerk ID of current user
+  const { targetUserId } = req.params; // This is the Clerk ID of the target user
 
-  if (userId === targetUserId)
+  if (currentUserId === targetUserId)
     return res.status(400).json({ error: "You cannot follow yourself" });
 
-  const currentUser = await User.findOne({ clerkId: userId });
-  const targetUser = await User.findById(targetUserId);
+  // Find users by Clerk ID
+  const currentUser = await User.findOne({ clerkId: currentUserId });
+  const targetUser = await User.findOne({ clerkId: targetUserId });
 
   if (!currentUser || !targetUser)
     return res.status(404).json({ error: "User not found" });
@@ -78,25 +79,29 @@ export const followUser = asyncHandler(async (req, res) => {
   const isFollowing = currentUser.following.includes(targetUserId);
 
   if (isFollowing) {
-    // unfollow
-    await User.findByIdAndUpdate(currentUser._id, {
-      $pull: { following: targetUserId },
-    });
-    await User.findByIdAndUpdate(targetUserId, {
-      $pull: { followers: currentUser._id },
-    });
+    // Unfollow
+    await User.findOneAndUpdate(
+      { clerkId: currentUserId },
+      { $pull: { following: targetUserId } }
+    );
+    await User.findOneAndUpdate(
+      { clerkId: targetUserId },
+      { $pull: { followers: currentUserId } }
+    );
   } else {
-    // follow – prevent duplicates using $addToSet
-    await User.findByIdAndUpdate(currentUser._id, {
-      $addToSet: { following: targetUserId },
-    });
-    await User.findByIdAndUpdate(targetUserId, {
-      $addToSet: { followers: currentUser._id },
-    });
+    // Follow
+    await User.findOneAndUpdate(
+      { clerkId: currentUserId },
+      { $addToSet: { following: targetUserId } }
+    );
+    await User.findOneAndUpdate(
+      { clerkId: targetUserId },
+      { $addToSet: { followers: currentUserId } }
+    );
 
-    // create notification
+    // Optional: create notification
     await Notification.create({
-      from: currentUser._id,
+      from: currentUserId,
       to: targetUserId,
       type: "follow",
     });
