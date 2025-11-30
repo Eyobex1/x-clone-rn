@@ -2,13 +2,19 @@ import { Notification } from "@/types";
 import { formatDate } from "@/utils/formatters";
 import { Feather } from "@expo/vector-icons";
 import { View, Text, Alert, Image, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router"; // <-- add router
 
 interface NotificationCardProps {
   notification: Notification;
   onDelete: (notificationId: string) => void;
 }
 
-const NotificationCard = ({ notification, onDelete }: NotificationCardProps) => {
+const NotificationCard = ({
+  notification,
+  onDelete,
+}: NotificationCardProps) => {
+  const router = useRouter(); // <-- get router instance
+
   const getNotificationText = () => {
     const name = `${notification.from.firstName} ${notification.from.lastName}`;
     switch (notification.type) {
@@ -37,41 +43,57 @@ const NotificationCard = ({ notification, onDelete }: NotificationCardProps) => 
   };
 
   const handleDelete = () => {
-    Alert.alert("Delete Notification", "Are you sure you want to delete this notification?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => onDelete(notification._id),
-      },
-    ]);
+    Alert.alert(
+      "Delete Notification",
+      "Are you sure you want to delete this notification?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => onDelete(notification._id),
+        },
+      ]
+    );
+  };
+
+  const goToProfile = () => {
+    router.push({
+      pathname: "/profile/[username]",
+      params: { username: notification.from.username },
+    });
   };
 
   return (
     <View className="border-b border-gray-100 bg-white">
       <View className="flex-row p-4">
-        <View className="relative mr-3">
+        {/* Avatar clickable */}
+        <TouchableOpacity onPress={goToProfile} className="relative mr-3">
           <Image
             source={{ uri: notification.from.profilePicture }}
             className="size-12 rounded-full"
           />
-
-          <View className="abolute -bottom-1 -right-1 size-6 bg-white items-center justify-center">
+          <View className="absolute -bottom-1 -right-1 size-6 bg-white items-center justify-center">
             {getNotificationIcon()}
           </View>
-        </View>
+        </TouchableOpacity>
 
         <View className="flex-1">
           <View className="flex-row items-start justify-between mb-1">
-            <View className="flex-1">
+            <TouchableOpacity onPress={goToProfile} className="flex-1">
               <Text className="text-gray-900 text-base leading-5 mb-1">
                 <Text className="font-semibold">
                   {notification.from.firstName} {notification.from.lastName}
                 </Text>
-                <Text className="text-gray-500"> @{notification.from.username}</Text>
+                <Text className="text-gray-500">
+                  {" "}
+                  @{notification.from.username}
+                </Text>
               </Text>
-              <Text className="text-gray-700 text-sm mb-2">{getNotificationText()}</Text>
-            </View>
+              <Text className="text-gray-700 text-sm mb-2">
+                {getNotificationText()}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity className="ml-2 p-1" onPress={handleDelete}>
               <Feather name="trash" size={16} color="#E0245E" />
@@ -102,10 +124,13 @@ const NotificationCard = ({ notification, onDelete }: NotificationCardProps) => 
             </View>
           )}
 
-          <Text className="text-gray-400 text-xs">{formatDate(notification.createdAt)}</Text>
+          <Text className="text-gray-400 text-xs">
+            {formatDate(notification.createdAt)}
+          </Text>
         </View>
       </View>
     </View>
   );
 };
+
 export default NotificationCard;
