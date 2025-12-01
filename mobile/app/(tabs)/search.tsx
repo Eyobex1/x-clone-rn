@@ -58,7 +58,7 @@ const SearchScreen = () => {
                     className="flex-row items-center py-3 border-b border-gray-100"
                     onPress={() =>
                       router.push({
-                        pathname: "/profile/[username]",
+                        pathname: "/screens/profile/[username]",
                         params: { username: user.username },
                       })
                     }
