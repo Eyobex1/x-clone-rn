@@ -15,9 +15,14 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from "react-native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 const ProfileScreens = () => {
+  const router = useRouter();
   const { currentUser, isLoading } = useCurrentUser();
   const insets = useSafeAreaInsets();
 
@@ -46,6 +51,15 @@ const ProfileScreens = () => {
     );
   }
 
+  // Function to navigate to ImageViewer
+  const handleImagePress = (imageUri: string | undefined) => {
+    if (!imageUri) return;
+    router.push({
+      pathname: "/screens/image-viewer/image-viewer",
+      params: { uri: encodeURIComponent(imageUri) }, // Encode URL for safe navigation
+    });
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
       {/* Header */}
@@ -54,7 +68,9 @@ const ProfileScreens = () => {
           <Text className="text-xl font-bold text-gray-900">
             {currentUser.firstName} {currentUser.lastName}
           </Text>
-          <Text className="text-gray-500 text-sm">{userPosts.length} Posts</Text>
+          <Text className="text-gray-500 text-sm">
+            {userPosts.length} Posts
+          </Text>
         </View>
         <SignOutButton />
       </View>
@@ -74,22 +90,35 @@ const ProfileScreens = () => {
           />
         }
       >
-        <Image
-          source={{
-            uri:
-              currentUser.bannerImage ||
-              "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop",
-          }}
-          className="w-full h-48"
-          resizeMode="cover"
-        />
+        {/* Banner Image (clickable) */}
+        <TouchableOpacity
+          onPress={() => handleImagePress(currentUser.bannerImage)}
+          disabled={!currentUser.bannerImage}
+        >
+          <Image
+            source={{
+              uri:
+                currentUser.bannerImage ||
+                "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop",
+            }}
+            className="w-full h-48"
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
 
         <View className="px-4 pb-4 border-b border-gray-100">
           <View className="flex-row justify-between items-end -mt-16 mb-4">
-            <Image
-              source={{ uri: currentUser.profilePicture }}
-              className="w-32 h-32 rounded-full border-4 border-white"
-            />
+            {/* Profile Picture (clickable) */}
+            <TouchableOpacity
+              onPress={() => handleImagePress(currentUser.profilePicture)}
+              disabled={!currentUser.profilePicture}
+            >
+              <Image
+                source={{ uri: currentUser.profilePicture }}
+                className="w-32 h-32 rounded-full border-4 border-white"
+              />
+            </TouchableOpacity>
+
             <TouchableOpacity
               className="border border-gray-300 px-6 py-2 rounded-full"
               onPress={openEditModal}
@@ -98,6 +127,7 @@ const ProfileScreens = () => {
             </TouchableOpacity>
           </View>
 
+          {/* User Info */}
           <View className="mb-4">
             <View className="flex-row items-center mb-1">
               <Text className="text-xl font-bold text-gray-900 mr-1">
@@ -123,13 +153,17 @@ const ProfileScreens = () => {
             <View className="flex-row">
               <TouchableOpacity className="mr-6">
                 <Text className="text-gray-900">
-                  <Text className="font-bold">{currentUser.following?.length}</Text>
+                  <Text className="font-bold">
+                    {currentUser.following?.length}
+                  </Text>
                   <Text className="text-gray-500"> Following</Text>
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity>
                 <Text className="text-gray-900">
-                  <Text className="font-bold">{currentUser.followers?.length}</Text>
+                  <Text className="font-bold">
+                    {currentUser.followers?.length}
+                  </Text>
                   <Text className="text-gray-500"> Followers</Text>
                 </Text>
               </TouchableOpacity>

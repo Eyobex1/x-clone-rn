@@ -1,3 +1,4 @@
+import React from "react";
 import {
   View,
   Text,
@@ -6,7 +7,9 @@ import {
   ActivityIndicator,
   ScrollView,
   TextInput,
+  Image,
 } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 
 interface EditProfileModalProps {
   isVisible: boolean;
@@ -16,6 +19,8 @@ interface EditProfileModalProps {
     lastName: string;
     bio: string;
     location: string;
+    profilePicture?: string;
+    bannerImage?: string;
   };
   saveProfile: () => void;
   updateFormField: (field: string, value: string) => void;
@@ -23,20 +28,40 @@ interface EditProfileModalProps {
 }
 
 const EditProfileModal = ({
-  formData,
-  isUpdating,
   isVisible,
   onClose,
-  saveProfile,
+  formData,
   updateFormField,
+  saveProfile,
+  isUpdating,
 }: EditProfileModalProps) => {
+  // Pick image from gallery
+  const pickImage = async (field: "profilePicture" | "bannerImage") => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: field === "profilePicture" ? [1, 1] : [16, 9],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedImageUri = result.assets[0].uri;
+      updateFormField(field, selectedImageUri);
+    }
+  };
+
   const handleSave = () => {
     saveProfile();
     onClose();
   };
 
   return (
-    <Modal visible={isVisible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={isVisible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
+      {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
         <TouchableOpacity onPress={onClose}>
           <Text className="text-blue-500 text-lg">Cancel</Text>
@@ -57,7 +82,49 @@ const EditProfileModal = ({
         </TouchableOpacity>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-6">
+      <ScrollView
+        className="flex-1 px-4 py-6"
+        contentContainerStyle={{ paddingBottom: 40 }}
+      >
+        {/* Banner Image */}
+        <TouchableOpacity
+          onPress={() => pickImage("bannerImage")}
+          className="mb-4"
+        >
+          <Text className="text-blue-500 mb-2">Change Cover Photo</Text>
+          {formData.bannerImage ? (
+            <Image
+              source={{ uri: formData.bannerImage }}
+              className="w-full h-32 rounded-lg"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-full h-32 bg-gray-200 rounded-lg justify-center items-center">
+              <Text className="text-gray-500">No cover image</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Profile Picture */}
+        <TouchableOpacity
+          onPress={() => pickImage("profilePicture")}
+          className="mb-6"
+        >
+          <Text className="text-blue-500 mb-2">Change Profile Picture</Text>
+          {formData.profilePicture ? (
+            <Image
+              source={{ uri: formData.profilePicture }}
+              className="w-32 h-32 rounded-full"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-32 h-32 bg-gray-200 rounded-full justify-center items-center">
+              <Text className="text-gray-500">No profile picture</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Text fields */}
         <View className="space-y-4">
           <View>
             <Text className="text-gray-500 text-sm mb-2">First Name</Text>
@@ -72,7 +139,7 @@ const EditProfileModal = ({
           <View>
             <Text className="text-gray-500 text-sm mb-2">Last Name</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-3 text-base"
+              className="border border-gray-200 rounded-lg p-3 text-base"
               value={formData.lastName}
               onChangeText={(text) => updateFormField("lastName", text)}
               placeholder="Your last name"
@@ -82,7 +149,7 @@ const EditProfileModal = ({
           <View>
             <Text className="text-gray-500 text-sm mb-2">Bio</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-3 text-base"
+              className="border border-gray-200 rounded-lg p-3 text-base"
               value={formData.bio}
               onChangeText={(text) => updateFormField("bio", text)}
               placeholder="Tell us about yourself"
@@ -95,7 +162,7 @@ const EditProfileModal = ({
           <View>
             <Text className="text-gray-500 text-sm mb-2">Location</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg px-3 py-3 text-base"
+              className="border border-gray-200 rounded-lg p-3 text-base"
               value={formData.location}
               onChangeText={(text) => updateFormField("location", text)}
               placeholder="Where are you located?"

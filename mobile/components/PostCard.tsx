@@ -37,7 +37,7 @@ const PostCard = ({
 
   const goToProfile = () => {
     router.push({
-      pathname: "/profile/[username]",
+      pathname: "/screens/profile/[username]",
       params: { username: post.user.username },
     });
   };
@@ -93,7 +93,7 @@ const PostCard = ({
           activeOpacity={0.9}
           onPress={() =>
             router.push({
-              pathname: "/image-viewer/image-viewer",
+              pathname: "/screens/image-viewer/image-viewer",
               params: { uri: post.image },
             })
           }
