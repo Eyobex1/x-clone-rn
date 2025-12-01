@@ -3,13 +3,21 @@ import Post from "../models/post.model.js";
 import User from "../models/user.model.js";
 import { getAuth } from "@clerk/express";
 import cloudinary from "../config/cloudinary.js";
-
 import Notification from "../models/notification.model.js";
 import Comment from "../models/comment.model.js";
 
+/**
+ * GET /api/posts
+ * Query params: skip, limit
+ */
 export const getPosts = asyncHandler(async (req, res) => {
+  const skip = parseInt(req.query.skip) || 0;
+  const limit = parseInt(req.query.limit) || 10;
+
   const posts = await Post.find()
     .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .populate("user", "username firstName lastName profilePicture")
     .populate({
       path: "comments",
@@ -22,6 +30,37 @@ export const getPosts = asyncHandler(async (req, res) => {
   res.status(200).json({ posts });
 });
 
+/**
+ * GET /api/posts/user/:username
+ * Query params: skip, limit
+ */
+export const getUserPosts = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  const skip = parseInt(req.query.skip) || 0;
+  const limit = parseInt(req.query.limit) || 10;
+
+  const user = await User.findOne({ username });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const posts = await Post.find({ user: user._id })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .populate("user", "username firstName lastName profilePicture")
+    .populate({
+      path: "comments",
+      populate: {
+        path: "user",
+        select: "username firstName lastName profilePicture",
+      },
+    });
+
+  res.status(200).json({ posts });
+});
+
+/**
+ * GET /api/posts/:postId
+ */
 export const getPost = asyncHandler(async (req, res) => {
   const { postId } = req.params;
 
@@ -40,26 +79,9 @@ export const getPost = asyncHandler(async (req, res) => {
   res.status(200).json({ post });
 });
 
-export const getUserPosts = asyncHandler(async (req, res) => {
-  const { username } = req.params;
-
-  const user = await User.findOne({ username });
-  if (!user) return res.status(404).json({ error: "User not found" });
-
-  const posts = await Post.find({ user: user._id })
-    .sort({ createdAt: -1 })
-    .populate("user", "username firstName lastName profilePicture")
-    .populate({
-      path: "comments",
-      populate: {
-        path: "user",
-        select: "username firstName lastName profilePicture",
-      },
-    });
-
-  res.status(200).json({ posts });
-});
-
+/**
+ * POST /api/posts
+ */
 export const createPost = asyncHandler(async (req, res) => {
   const { userId } = getAuth(req);
   const { content } = req.body;
@@ -76,10 +98,8 @@ export const createPost = asyncHandler(async (req, res) => {
 
   let imageUrl = "";
 
-  // upload image to Cloudinary if provided
   if (imageFile) {
     try {
-      // convert buffer to base64 for cloudinary
       const base64Image = `data:${
         imageFile.mimetype
       };base64,${imageFile.buffer.toString("base64")}`;
@@ -109,6 +129,9 @@ export const createPost = asyncHandler(async (req, res) => {
   res.status(201).json({ post });
 });
 
+/**
+ * POST /api/posts/:postId/like
+ */
 export const likePost = asyncHandler(async (req, res) => {
   const { userId } = getAuth(req);
   const { postId } = req.params;
@@ -122,17 +145,10 @@ export const likePost = asyncHandler(async (req, res) => {
   const isLiked = post.likes.includes(user._id);
 
   if (isLiked) {
-    // unlike
-    await Post.findByIdAndUpdate(postId, {
-      $pull: { likes: user._id },
-    });
+    await Post.findByIdAndUpdate(postId, { $pull: { likes: user._id } });
   } else {
-    // like
-    await Post.findByIdAndUpdate(postId, {
-      $push: { likes: user._id },
-    });
+    await Post.findByIdAndUpdate(postId, { $push: { likes: user._id } });
 
-    // create notification if not liking own post
     if (post.user.toString() !== user._id.toString()) {
       await Notification.create({
         from: user._id,
@@ -148,6 +164,9 @@ export const likePost = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * DELETE /api/posts/:postId
+ */
 export const deletePost = asyncHandler(async (req, res) => {
   const { userId } = getAuth(req);
   const { postId } = req.params;
@@ -157,17 +176,12 @@ export const deletePost = asyncHandler(async (req, res) => {
 
   if (!user || !post)
     return res.status(404).json({ error: "User or post not found" });
-
-  if (post.user.toString() !== user._id.toString()) {
+  if (post.user.toString() !== user._id.toString())
     return res
       .status(403)
       .json({ error: "You can only delete your own posts" });
-  }
 
-  // delete all comments on this post
   await Comment.deleteMany({ post: postId });
-
-  // delete the post
   await Post.findByIdAndDelete(postId);
 
   res.status(200).json({ message: "Post deleted successfully" });
