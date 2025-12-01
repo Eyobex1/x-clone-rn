@@ -59,7 +59,7 @@ const NotificationCard = ({
 
   const goToProfile = () => {
     router.push({
-      pathname: "/profile/[username]",
+      pathname: "/screens/profile/[username]",
       params: { username: notification.from.username },
     });
   };
