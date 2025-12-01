@@ -19,11 +19,12 @@ import { usePosts } from "@/hooks/usePosts";
 import { useFollowUser } from "@/hooks/useFollowUser";
 import PostsList from "@/components/PostsList";
 import { Feather } from "@expo/vector-icons";
-import { format } from "date-fns";
 
 const DEFAULT_BANNER =
   "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop";
 const DEFAULT_AVATAR = "https://via.placeholder.com/150";
+
+const TAB_BAR_HEIGHT = 60; // adjust this to your bottom tab height
 
 const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
@@ -98,9 +99,11 @@ const ProfileScreen = () => {
   const isOwnProfile = localProfile.clerkId === currentUserId;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-white" edges={["top", "bottom"]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 + insets.bottom }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + insets.bottom,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={isProfileLoading || isPostsLoading}
