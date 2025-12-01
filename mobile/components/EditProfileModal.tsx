@@ -40,7 +40,7 @@ const EditProfileModal = ({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: field === "profilePicture" ? [1, 1] : [16, 9],
+      aspect: undefined,
       quality: 1,
     });
 
