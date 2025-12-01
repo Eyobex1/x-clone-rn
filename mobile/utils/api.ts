@@ -48,6 +48,11 @@ export const useApiClient = (): AxiosInstance => {
   return createApiClient(getToken);
 };
 
+// Response type based on backend
+export interface PostsResponse {
+  posts: any[];
+}
+
 // ===== API ENDPOINTS =====
 export const userApi = {
   syncUser: (api: AxiosInstance) => api.post("/users/sync"),
@@ -62,11 +67,25 @@ export const userApi = {
 export const postApi = {
   createPost: (api: AxiosInstance, data: { content: string; image?: string }) =>
     api.post("/posts", data),
-  getPosts: (api: AxiosInstance) => api.get("/posts"),
-  getUserPosts: (api: AxiosInstance, username: string) =>
-    api.get(`/posts/user/${username}`),
+
+  getPosts: (api: AxiosInstance, skip: number = 0, limit: number = 10) =>
+    api
+      .get<PostsResponse>(`/posts?skip=${skip}&limit=${limit}`)
+      .then((res) => res.data),
+
+  getUserPosts: (
+    api: AxiosInstance,
+    username: string,
+    skip: number = 0,
+    limit: number = 10
+  ) =>
+    api
+      .get<PostsResponse>(`/posts/user/${username}?skip=${skip}&limit=${limit}`)
+      .then((res) => res.data),
+
   likePost: (api: AxiosInstance, postId: string) =>
     api.post(`/posts/${postId}/like`),
+
   deletePost: (api: AxiosInstance, postId: string) =>
     api.delete(`/posts/${postId}`),
 };
