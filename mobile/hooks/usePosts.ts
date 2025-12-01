@@ -30,8 +30,7 @@ export const usePosts = (username?: string) => {
       },
     });
 
-  // ✅ data.pages is now correctly typed
-  const posts: any[] = data?.pages?.flatMap((p) => p.posts) ?? [];
+  const posts = data?.pages?.flatMap((p) => p.posts) ?? [];
 
   const likePostMutation = useMutation({
     mutationFn: (postId: string) => postApi.likePost(api, postId),
