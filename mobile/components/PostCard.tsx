@@ -42,7 +42,7 @@ const PostCard = ({
     });
   };
 
-  // Calculate aspect ratio for the image
+  // Image aspect ratio
   const imageAspectRatio =
     post.imageWidth && post.imageHeight
       ? post.imageWidth / post.imageHeight
@@ -50,6 +50,7 @@ const PostCard = ({
 
   return (
     <View className="border-b border-gray-100 bg-white">
+      {/* HEADER (Profile picture + name + timestamp) */}
       <View className="flex-row p-4">
         {/* Profile picture */}
         <TouchableOpacity onPress={goToProfile}>
@@ -59,85 +60,98 @@ const PostCard = ({
           />
         </TouchableOpacity>
 
+        {/* User info + content (NO IMAGE HERE) */}
         <View className="flex-1">
-          {/* User info & delete button */}
           <View className="flex-row items-center justify-between mb-1">
-            <View className="flex-row items-center">
-              <TouchableOpacity onPress={goToProfile}>
-                <Text className="font-bold text-gray-900 mr-1">
-                  {post.user.firstName} {post.user.lastName}
-                </Text>
-                <Text className="text-gray-500 ml-1">
-                  @{post.user.username} · {formatDate(post.createdAt)}
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={goToProfile}>
+              <Text className="font-bold text-gray-900">
+                {post.user.firstName} {post.user.lastName}
+              </Text>
+              <Text className="text-gray-500">
+                @{post.user.username} · {formatDate(post.createdAt)}
+              </Text>
+            </TouchableOpacity>
 
             {isOwnPost && (
               <TouchableOpacity onPress={handleDelete}>
-                <Feather name="trash" size={20} color="#657786" />
+                <Feather name="trash" size={20} color="red" />
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Post content */}
           {post.content && (
-            <Text className="text-gray-900 text-base leading-5 mb-3">
+            <Text className="text-gray-900 text-base leading-5 mt-2">
               {post.content}
             </Text>
           )}
+        </View>
+      </View>
 
-          {/* Post image with dynamic aspect ratio */}
-          {post.image && (
-            <Image
-              source={{ uri: post.image }}
-              style={{
-                width: "100%",
-                aspectRatio: imageAspectRatio,
-                borderRadius: 16,
-                marginBottom: 12,
-              }}
-              resizeMode="cover"
-            />
-          )}
+      {/* FULL-WIDTH IMAGE */}
+      {post.image && (
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={() =>
+            router.push({
+              pathname: "/image-viewer/image-viewer",
+              params: { uri: post.image },
+            })
+          }
+        >
+          <Image
+            source={{ uri: post.image }}
+            style={{
+              width: "100%",
+              aspectRatio: imageAspectRatio,
+            }}
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
+      )}
 
-          {/* Post actions */}
-          <View className="flex-row justify-between max-w-xs">
-            <TouchableOpacity
-              className="flex-row items-center"
-              onPress={() => onComment(post)}
+      {/* ACTIONS */}
+      <View className="px-4 py-3">
+        <View className="flex-row justify-between max-w-xs">
+          {/* Comments */}
+          <TouchableOpacity
+            className="flex-row items-center"
+            onPress={() => onComment(post)}
+          >
+            <Feather name="message-circle" size={18} color="#657786" />
+            <Text className="text-gray-500 text-sm ml-2">
+              {formatNumber(post.comments?.length || 0)}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Retweet / Repost */}
+          <TouchableOpacity className="flex-row items-center">
+            <Feather name="repeat" size={18} color="#657786" />
+            <Text className="text-gray-500 text-sm ml-2">0</Text>
+          </TouchableOpacity>
+
+          {/* Like */}
+          <TouchableOpacity
+            className="flex-row items-center"
+            onPress={() => onLike(post._id)}
+          >
+            {isLiked ? (
+              <AntDesign name="heart" size={18} color="#E0245E" />
+            ) : (
+              <Feather name="heart" size={18} color="#657786" />
+            )}
+            <Text
+              className={`text-sm ml-2 ${
+                isLiked ? "text-red-500" : "text-gray-500"
+              }`}
             >
-              <Feather name="message-circle" size={18} color="#657786" />
-              <Text className="text-gray-500 text-sm ml-2">
-                {formatNumber(post.comments?.length || 0)}
-              </Text>
-            </TouchableOpacity>
+              {formatNumber(post.likes?.length || 0)}
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity className="flex-row items-center">
-              <Feather name="repeat" size={18} color="#657786" />
-              <Text className="text-gray-500 text-sm ml-2">0</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="flex-row items-center"
-              onPress={() => onLike(post._id)}
-            >
-              {isLiked ? (
-                <AntDesign name="heart" size={18} color="#E0245E" />
-              ) : (
-                <Feather name="heart" size={18} color="#657786" />
-              )}
-              <Text
-                className={`text-sm ml-2 ${isLiked ? "text-red-500" : "text-gray-500"}`}
-              >
-                {formatNumber(post.likes?.length || 0)}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity>
-              <Feather name="share" size={18} color="#657786" />
-            </TouchableOpacity>
-          </View>
+          {/* Share */}
+          <TouchableOpacity>
+            <Feather name="share" size={18} color="#657786" />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
