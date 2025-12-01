@@ -23,8 +23,7 @@ import { Feather } from "@expo/vector-icons";
 const DEFAULT_BANNER =
   "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop";
 const DEFAULT_AVATAR = "https://via.placeholder.com/150";
-
-const TAB_BAR_HEIGHT = 60; // adjust this to your bottom tab height
+const TAB_BAR_HEIGHT = 60;
 
 const ProfileScreen = () => {
   const insets = useSafeAreaInsets();
@@ -39,11 +38,6 @@ const ProfileScreen = () => {
     isLoading: isProfileLoading,
     refetch: refetchProfile,
   } = useUserProfile(username);
-  const {
-    posts,
-    isLoading: isPostsLoading,
-    refetch: refetchPosts,
-  } = usePosts(username);
 
   const [localProfile, setLocalProfile] = useState(profile);
 
@@ -51,13 +45,14 @@ const ProfileScreen = () => {
     if (profile) setLocalProfile(profile);
   }, [profile]);
 
-  // Redirect to own profile if needed
+  // Redirect to own profile if visiting self
   useEffect(() => {
     if (localProfile?.clerkId === currentUserId) {
       router.replace("/(tabs)/profile");
     }
   }, [localProfile, currentUserId]);
 
+  // Follow / Unfollow logic
   const followMutation = useFollowUser(username, localProfile?.clerkId ?? "");
   const isFollowing = localProfile?.followers?.includes(currentUserId ?? "");
   const isMutating = followMutation.status === "pending";
@@ -78,6 +73,27 @@ const ProfileScreen = () => {
     });
 
     followMutation.mutate();
+  };
+
+  // Navigate to ImageViewer
+  const handleImagePress = (imageUri: string | undefined, isBanner = false) => {
+    let finalUri = imageUri;
+
+    // Fallback to default if missing
+    if (!finalUri) {
+      finalUri = isBanner ? DEFAULT_BANNER : DEFAULT_AVATAR;
+    }
+
+    // Ensure absolute URL (optional: adjust if your backend serves relative paths)
+    if (!finalUri.startsWith("http")) {
+      finalUri = `https://your-backend.com${finalUri}`;
+    }
+
+    router.push(
+      `/screens/image-viewer/image-viewer?uri=${encodeURIComponent(
+        finalUri
+      )}&t=${Date.now()}`
+    );
   };
 
   if (isProfileLoading) {
@@ -106,28 +122,36 @@ const ProfileScreen = () => {
         }}
         refreshControl={
           <RefreshControl
-            refreshing={isProfileLoading || isPostsLoading}
-            onRefresh={() => {
-              refetchProfile();
-              refetchPosts();
+            refreshing={isProfileLoading}
+            onRefresh={async () => {
+              await refetchProfile();
             }}
             tintColor="#1DA1F2"
           />
         }
       >
         {/* Banner */}
-        <Image
-          source={{ uri: localProfile.bannerImage || DEFAULT_BANNER }}
-          className="w-full h-48"
-          resizeMode="cover"
-        />
+        <TouchableOpacity
+          onPress={() => handleImagePress(localProfile.bannerImage, true)}
+          activeOpacity={0.9}
+        >
+          <Image
+            source={{ uri: localProfile.bannerImage || DEFAULT_BANNER }}
+            className="w-full h-48"
+            resizeMode="cover"
+          />
+        </TouchableOpacity>
 
         {/* Profile Picture & Buttons */}
         <View className="px-4 -mt-16 flex-row justify-between items-end">
-          <Image
-            source={{ uri: localProfile.profilePicture || DEFAULT_AVATAR }}
-            className="w-32 h-32 rounded-full border-4 border-white"
-          />
+          <TouchableOpacity
+            onPress={() => handleImagePress(localProfile.profilePicture)}
+          >
+            <Image
+              source={{ uri: localProfile.profilePicture || DEFAULT_AVATAR }}
+              className="w-32 h-32 rounded-full border-4 border-white"
+            />
+          </TouchableOpacity>
 
           {!isOwnProfile && (
             <View className="flex-row space-x-2">
@@ -202,8 +226,6 @@ const ProfileScreen = () => {
             </Text>
           </View>
         </View>
-
-        {/* Posts */}
         <PostsList username={username} />
       </ScrollView>
     </SafeAreaView>
