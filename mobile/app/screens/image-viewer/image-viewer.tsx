@@ -1,12 +1,13 @@
-import { View, Image, TouchableOpacity, Text } from "react-native";
+import { View, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as FileSystem from "expo-file-system";
 import * as MediaLibrary from "expo-media-library";
 import { Feather } from "@expo/vector-icons";
 import { useState } from "react";
+import Toast from "react-native-toast-message";
 
 export default function ImageViewer() {
-  const { uri } = useLocalSearchParams();
+  const { uri } = useLocalSearchParams<{ uri: string }>();
   const router = useRouter();
   const [downloading, setDownloading] = useState(false);
 
@@ -16,7 +17,11 @@ export default function ImageViewer() {
 
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
-        alert("Permission required to save the image.");
+        Toast.show({
+          type: "error",
+          text1: "Permission needed",
+          text2: "Allow access to save images",
+        });
         return;
       }
 
@@ -24,10 +29,17 @@ export default function ImageViewer() {
       const download = await FileSystem.downloadAsync(uri as string, fileUri);
 
       await MediaLibrary.saveToLibraryAsync(download.uri);
-
-      alert("Image saved to gallery!");
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Image saved to gallery!",
+      });
     } catch (e) {
-      alert("Failed to save image.");
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to save image.",
+      });
     } finally {
       setDownloading(false);
     }
@@ -47,22 +59,19 @@ export default function ImageViewer() {
       <TouchableOpacity
         onPress={downloadImage}
         style={{ position: "absolute", top: 50, right: 20, zIndex: 20 }}
+        disabled={downloading}
       >
-        <Feather
-          name={downloading ? "loader" : "download"}
-          size={30}
-          color="white"
-        />
+        {downloading ? (
+          <ActivityIndicator size="small" color="white" />
+        ) : (
+          <Feather name="download" size={30} color="white" />
+        )}
       </TouchableOpacity>
 
       {/* Fullscreen Image */}
       <Image
         source={{ uri: uri as string }}
-        style={{
-          width: "100%",
-          height: "100%",
-          resizeMode: "contain",
-        }}
+        style={{ width: "100%", height: "100%", resizeMode: "contain" }}
       />
     </View>
   );

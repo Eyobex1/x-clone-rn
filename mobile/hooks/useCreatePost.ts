@@ -1,12 +1,19 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert, Image } from "react-native";
+import { Image } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useApiClient } from "../utils/api";
+import Toast from "react-native-toast-message"; // Toast package
 
+// Custom hook for creating posts
 export const useCreatePost = () => {
+  // State for post content
   const [content, setContent] = useState("");
+
+  // State for selected image URI
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // State for storing image dimensions
   const [imageDimensions, setImageDimensions] = useState<{
     width: number;
     height: number;
@@ -15,6 +22,7 @@ export const useCreatePost = () => {
   const api = useApiClient();
   const queryClient = useQueryClient();
 
+  // Mutation to create a post
   const createPostMutation = useMutation({
     mutationFn: async (postData: {
       content: string;
@@ -50,24 +58,39 @@ export const useCreatePost = () => {
       setContent("");
       setSelectedImage(null);
       setImageDimensions(null);
+
+      // Refresh posts
       queryClient.invalidateQueries({ queryKey: ["posts"] });
-      Alert.alert("Success", "Post created successfully!");
+
+      // Success toast
+      Toast.show({
+        type: "success",
+        text1: "Success",
+        text2: "Post created successfully!",
+      });
     },
     onError: () => {
-      Alert.alert("Error", "Failed to create post. Please try again.");
+      // Error toast
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to create post. Please try again.",
+      });
     },
   });
 
+  // Function to pick image from gallery or camera
   const pickImage = async (useCamera: boolean = false) => {
     const permissionResult = useCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
       : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (permissionResult.status !== "granted") {
-      Alert.alert(
-        "Permission needed",
-        `Please allow access to your ${useCamera ? "camera" : "photo library"}`
-      );
+      Toast.show({
+        type: "info",
+        text1: "Permission needed",
+        text2: `Please allow access to your ${useCamera ? "camera" : "photo library"}`,
+      });
       return;
     }
 
@@ -89,17 +112,19 @@ export const useCreatePost = () => {
       Image.getSize(
         uri,
         (width, height) => setImageDimensions({ width, height }),
-        () => setImageDimensions({ width: 1, height: 1 })
+        () => setImageDimensions({ width: 1, height: 1 }) // fallback
       );
     }
   };
 
+  // Function to create post
   const createPost = () => {
     if (!content.trim() && !selectedImage) {
-      Alert.alert(
-        "Empty Post",
-        "Please write something or add an image before posting!"
-      );
+      Toast.show({
+        type: "info",
+        text1: "Empty Post",
+        text2: "Write something or add an image before posting!",
+      });
       return;
     }
 

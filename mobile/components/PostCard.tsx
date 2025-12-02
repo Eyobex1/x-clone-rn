@@ -117,7 +117,7 @@ const PostCard = ({
             className="flex-row items-center"
             onPress={() => onComment(post)}
           >
-            <Feather name="message-circle" size={18} color="#657786" />
+            <Feather name="message-circle" size={22} color="#657786" />
             <Text className="text-gray-500 text-sm ml-2">
               {formatNumber(post.comments?.length || 0)}
             </Text>
@@ -125,7 +125,7 @@ const PostCard = ({
 
           {/* Retweet / Repost */}
           <TouchableOpacity className="flex-row items-center">
-            <Feather name="repeat" size={18} color="#657786" />
+            <Feather name="repeat" size={22} color="#657786" />
             <Text className="text-gray-500 text-sm ml-2">0</Text>
           </TouchableOpacity>
 
@@ -135,9 +135,9 @@ const PostCard = ({
             onPress={() => onLike(post._id)}
           >
             {isLiked ? (
-              <AntDesign name="heart" size={18} color="#E0245E" />
+              <AntDesign name="heart" size={22} color="#E0245E" />
             ) : (
-              <Feather name="heart" size={18} color="#657786" />
+              <Feather name="heart" size={22} color="#657786" />
             )}
             <Text
               className={`text-sm ml-2 ${
@@ -150,7 +150,7 @@ const PostCard = ({
 
           {/* Share */}
           <TouchableOpacity>
-            <Feather name="share" size={18} color="#657786" />
+            <Feather name="share" size={22} color="#657786" />
           </TouchableOpacity>
         </View>
       </View>

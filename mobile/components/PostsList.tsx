@@ -3,9 +3,9 @@ import {
   ActivityIndicator,
   Text,
   View,
-  RefreshControlProps,
   StyleProp,
   ViewStyle,
+  RefreshControlProps,
 } from "react-native";
 import { usePosts } from "@/hooks/usePosts";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -20,7 +20,6 @@ interface PostsListProps {
   refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
-// Use forwardRef to pass FlatList ref from HomeScreen
 const PostsList = forwardRef<FlatList<any>, PostsListProps>(
   (
     { username, ListHeaderComponent, contentContainerStyle, refreshControl },
@@ -42,17 +41,19 @@ const PostsList = forwardRef<FlatList<any>, PostsListProps>(
       ? posts.find((p) => p._id === selectedPostId)
       : null;
 
+    // Show loader if fetching initial posts
     if (isLoading && !posts.length) {
       return (
-        <View className="p-8 items-center">
+        <View style={{ padding: 32, alignItems: "center" }}>
           <ActivityIndicator size="large" color="#1DA1F2" />
         </View>
       );
     }
 
+    // Show error if failed to fetch
     if (error && !posts.length) {
       return (
-        <View className="p-8 items-center">
+        <View style={{ padding: 32, alignItems: "center" }}>
           <Text>Failed to load posts</Text>
         </View>
       );
@@ -81,14 +82,14 @@ const PostsList = forwardRef<FlatList<any>, PostsListProps>(
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             hasNextPage ? (
-              <View className="py-4">
+              <View style={{ paddingVertical: 16 }}>
                 <ActivityIndicator size="small" color="#1DA1F2" />
               </View>
             ) : null
           }
           ListHeaderComponent={ListHeaderComponent ?? null}
           contentContainerStyle={contentContainerStyle}
-          refreshControl={refreshControl ?? undefined} // TypeScript-safe
+          refreshControl={refreshControl ?? undefined}
         />
 
         <CommentsModal

@@ -4,7 +4,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useApiClient, postApi, PostsResponse } from "../utils/api";
-
+import Toast from "react-native-toast-message";
 const LIMIT = 10;
 
 export const usePosts = (username?: string) => {
@@ -39,7 +39,23 @@ export const usePosts = (username?: string) => {
 
   const deletePostMutation = useMutation({
     mutationFn: (postId: string) => postApi.deletePost(api, postId),
-    onSuccess: () => queryClient.invalidateQueries(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: username ? ["userPosts", username] : ["posts"],
+      });
+      Toast.show({
+        type: "success",
+        text1: "Deleted",
+        text2: "Post deleted successfully!",
+      });
+    },
+    onError: () => {
+      Toast.show({
+        type: "error",
+        text1: "Error",
+        text2: "Failed to delete post.",
+      });
+    },
   });
 
   return {

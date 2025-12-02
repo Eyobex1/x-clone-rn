@@ -7,20 +7,19 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import {
-  SafeAreaView,
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { format } from "date-fns";
 import { useRouter } from "expo-router";
 
 import EditProfileModal from "@/components/EditProfileModal";
 import PostsList from "@/components/PostsList";
+import PostComposer from "@/components/PostComposer"; // Add PostComposer
 import SignOutButton from "@/components/SignOutButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfile } from "@/hooks/useProfile";
 import { usePosts } from "@/hooks/usePosts";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const ProfileScreens = () => {
   const router = useRouter();
@@ -38,6 +37,8 @@ const ProfileScreens = () => {
     refetch: refetchProfile,
   } = useProfile();
 
+  const { posts } = usePosts(currentUser?.username);
+
   if (isLoading || !currentUser) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -46,6 +47,7 @@ const ProfileScreens = () => {
     );
   }
 
+  // Image press opens fullscreen viewer
   const handleImagePress = (imageUri?: string) => {
     if (!imageUri) return;
     router.push({
@@ -54,11 +56,10 @@ const ProfileScreens = () => {
     });
   };
 
-  const { posts } = usePosts(currentUser.username);
-
-  // Header component for FlatList
-  const renderHeader = (
+  // Profile header component
+  const renderProfileHeader = (
     <View>
+      {/* Banner image */}
       <TouchableOpacity
         onPress={() => handleImagePress(currentUser.bannerImage)}
         disabled={!currentUser.bannerImage}
@@ -75,6 +76,7 @@ const ProfileScreens = () => {
       </TouchableOpacity>
 
       <View className="px-4 pb-4 border-b border-gray-100">
+        {/* Profile picture + edit button */}
         <View className="flex-row justify-between items-end -mt-16 mb-4">
           <TouchableOpacity
             onPress={() => handleImagePress(currentUser.profilePicture)}
@@ -94,6 +96,7 @@ const ProfileScreens = () => {
           </TouchableOpacity>
         </View>
 
+        {/* User info */}
         <View className="mb-4">
           <View className="flex-row items-center mb-1">
             <Text className="text-xl font-bold text-gray-900 mr-1">
@@ -139,8 +142,19 @@ const ProfileScreens = () => {
     </View>
   );
 
+  // Combine PostComposer + profile header as ListHeaderComponent
+  const listHeader = (
+    <View>
+      {/* Profile header */}
+      {renderProfileHeader}
+      {/* Composer */}
+      <PostComposer />
+    </View>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-white" edges={["top"]}>
+      {/* Top bar */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100">
         <View>
           <Text className="text-xl font-bold text-gray-900">
@@ -154,10 +168,10 @@ const ProfileScreens = () => {
         <SignOutButton />
       </View>
 
-      {/* FlatList handles scrolling; no outer ScrollView */}
+      {/* PostsList with PostComposer + Profile header */}
       <PostsList
         username={currentUser.username}
-        ListHeaderComponent={renderHeader}
+        ListHeaderComponent={listHeader}
         contentContainerStyle={{ paddingBottom: insets.bottom }}
         refreshControl={
           <RefreshControl
@@ -168,6 +182,7 @@ const ProfileScreens = () => {
         }
       />
 
+      {/* Edit profile modal */}
       <EditProfileModal
         isVisible={isEditModalVisible}
         onClose={closeEditModal}
