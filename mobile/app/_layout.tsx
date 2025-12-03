@@ -5,7 +5,7 @@ import "../global.css";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StatusBar } from "expo-status-bar";
 import Constants from "expo-constants";
-import Toast from "react-native-toast-message"; // <-- ADD THIS
+import Toast from "react-native-toast-message";
 import { View } from "react-native";
 
 const publishableKey = Constants.expoConfig?.extra?.clerkPublishableKey;

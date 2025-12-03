@@ -23,6 +23,8 @@ type RootTabParamList = {
 
 const HomeScreen = () => {
   const { currentUser } = useCurrentUser();
+  console.log("Current User:", currentUser);
+
   const insets = useSafeAreaInsets();
   const flatListRef = useRef<FlatList>(null);
 
