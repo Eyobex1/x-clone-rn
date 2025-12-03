@@ -57,8 +57,12 @@ export interface PostsResponse {
 export const userApi = {
   syncUser: (api: AxiosInstance) => api.post("/users/sync"),
   getCurrentUser: (api: AxiosInstance) => api.get("/users/me"),
-  updateProfile: (api: AxiosInstance, data: any) =>
-    api.put("/users/profile", data),
+  updateProfile: (api: AxiosInstance, data: FormData) =>
+    api.put("/users/profile", data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }),
 
   followUser: (api: AxiosInstance, targetUserId: string) =>
     api.post(`/users/follow/${targetUserId}`),

@@ -83,8 +83,25 @@ export const useProfile = () => {
     // Handlers
     openEditModal,
     closeEditModal: () => setIsEditModalVisible(false),
-    saveProfile: () => updateProfileMutation.mutate(formData),
-    updateFormField,
+    saveProfile: () => {
+      const form = new FormData();
+
+      Object.entries(formData).forEach(([key, value]) => {
+        if (!value) return;
+
+        if (key === "profilePicture" || key === "bannerImage") {
+          form.append(key, {
+            uri: value,
+            name: `${key}.jpg`,
+            type: "image/jpeg",
+          } as any);
+        } else {
+          form.append(key, value);
+        }
+      });
+
+      updateProfileMutation.mutate(form);
+    },
     // Status flags
     isUpdating: updateProfileMutation.isPending,
     // Refetch user data manually

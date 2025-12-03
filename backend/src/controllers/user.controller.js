@@ -16,13 +16,46 @@ export const getUserProfile = asyncHandler(async (req, res) => {
 export const updateProfile = asyncHandler(async (req, res) => {
   const { userId } = getAuth(req);
 
-  const user = await User.findOneAndUpdate({ clerkId: userId }, req.body, {
+  const user = await User.findOne({ clerkId: userId });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  let updateData = req.body;
+
+  // If profile picture exists, upload to Cloudinary (base64)
+  if (req.files?.profilePicture?.[0]) {
+    const file = req.files.profilePicture[0];
+
+    const base64Img = `data:${file.mimetype};base64,${file.buffer.toString(
+      "base64"
+    )}`;
+
+    const uploaded = await cloudinary.uploader.upload(base64Img, {
+      folder: "profile_pictures",
+    });
+
+    updateData.profilePicture = uploaded.secure_url;
+  }
+
+  // If banner image exists
+  if (req.files?.bannerImage?.[0]) {
+    const file = req.files.bannerImage[0];
+
+    const base64Img = `data:${file.mimetype};base64,${file.buffer.toString(
+      "base64"
+    )}`;
+
+    const uploaded = await cloudinary.uploader.upload(base64Img, {
+      folder: "banner_images",
+    });
+
+    updateData.bannerImage = uploaded.secure_url;
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(user._id, updateData, {
     new: true,
   });
 
-  if (!user) return res.status(404).json({ error: "User not found" });
-
-  res.status(200).json({ user });
+  res.status(200).json({ user: updatedUser });
 });
 
 export const syncUser = asyncHandler(async (req, res) => {
