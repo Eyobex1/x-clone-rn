@@ -1,5 +1,10 @@
-import axios, { AxiosInstance } from "axios";
+import axios, {
+  AxiosInstance,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from "axios";
 import { useAuth } from "@clerk/clerk-expo";
+import Toast from "react-native-toast-message";
 
 const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL || "https://x-clone-rn-mauve.vercel.app/api";
@@ -9,13 +14,20 @@ export const createApiClient = (
 ): AxiosInstance => {
   const api = axios.create({ baseURL: API_BASE_URL });
 
-  api.interceptors.request.use(async (config) => {
+  // ===== Request Interceptor =====
+  api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
     try {
       const token = await getToken();
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-      else console.warn("No token available, skipping Authorization header");
 
-      // Browser-like User-Agent to bypass bot detection
+      // Ensure headers exist, cast to AxiosRequestHeaders
+      if (!config.headers) {
+        config.headers = {} as InternalAxiosRequestConfig["headers"];
+      }
+
+      if (token) {
+        config.headers["Authorization"] = `Bearer ${token}`;
+      }
+
       config.headers["User-Agent"] =
         "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/16A366";
     } catch (err) {
@@ -24,18 +36,40 @@ export const createApiClient = (
     return config;
   });
 
+  // ===== Response Interceptor =====
   api.interceptors.response.use(
     (response) => response,
-    (error) => {
-      if (axios.isAxiosError(error)) {
-        console.error("Axios error:", {
-          message: error.message,
-          status: error.response?.status,
-          data: error.response?.data,
+    async (error: AxiosError) => {
+      const status = error.response?.status;
+      const data = error.response?.data as any; // ⭐ cast to any
+
+      if (status === 429) {
+        const retryAfterSec = parseInt(
+          error.response?.headers["retry-after"] || "5",
+          10
+        );
+        Toast.show({
+          type: "error",
+          text1: "Rate limit exceeded",
+          text2: `Please wait ${retryAfterSec} seconds before retrying.`,
+          visibilityTime: 4000,
         });
+
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryAfterSec * 1000)
+        );
+
+        if (error.config) return api.request(error.config);
       } else {
-        console.error("Unexpected error:", error);
+        Toast.show({
+          type: "error",
+          text1: `Request failed (${status})`,
+          text2: data?.error || data?.message || error.message, // ✅ works now
+          visibilityTime: 4000,
+        });
+        console.error("Axios error:", { message: error.message, status, data });
       }
+
       return Promise.reject(error);
     }
   );
