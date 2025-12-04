@@ -28,6 +28,7 @@ export interface Post {
   user: User;
   likes: string[]; // array of user IDs
   comments: Comment[];
+  reposts?: string[];
 }
 
 // ===== Notification =====

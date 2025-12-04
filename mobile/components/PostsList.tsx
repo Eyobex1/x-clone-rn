@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { usePosts } from "@/hooks/usePosts";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useState, forwardRef } from "react";
+import { useState, forwardRef, useMemo } from "react";
 import PostCard from "./PostCard";
 import CommentsModal from "./CommentsModal";
 
@@ -41,6 +41,17 @@ const PostsList = forwardRef<FlatList<any>, PostsListProps>(
       ? posts.find((p) => p._id === selectedPostId)
       : null;
 
+    // =========================
+    // Deduplicate posts to prevent "duplicate key" warning
+    // =========================
+    const uniquePosts = useMemo(() => {
+      const map = new Map<string, (typeof posts)[0]>();
+      posts.forEach((post) => {
+        map.set(post._id, post);
+      });
+      return Array.from(map.values());
+    }, [posts]);
+
     // Show loader if fetching initial posts
     if (isLoading && !posts.length) {
       return (
@@ -63,8 +74,8 @@ const PostsList = forwardRef<FlatList<any>, PostsListProps>(
       <>
         <FlatList
           ref={ref}
-          data={posts}
-          keyExtractor={(item) => item._id}
+          data={uniquePosts} // ✅ Use deduplicated posts
+          keyExtractor={(item) => item._id} // Safe now since duplicates are removed
           renderItem={({ item }) => (
             <PostCard
               post={item}
