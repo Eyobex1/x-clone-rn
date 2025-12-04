@@ -9,14 +9,16 @@ import {
 
 const router = express.Router();
 
-// Existing routes
+// ⭐ Infinite scroll notifications
 router.get("/", protectRoute, getNotifications);
+
+// Delete a notification
 router.delete("/:notificationId", protectRoute, deleteNotification);
 
-// ⭐ NEW: get unread count
+// Get unread notification count (for tab badge)
 router.get("/unread-count", protectRoute, getUnreadCount);
 
-// ⭐ NEW: mark all notifications as read
+// Mark all notifications as read
 router.put("/mark-read", protectRoute, markAllRead);
 
 export default router;
