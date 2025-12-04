@@ -10,20 +10,14 @@ import {
   Image,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import { ProfileForm } from "@/hooks/useProfile";
 
 interface EditProfileModalProps {
   isVisible: boolean;
   onClose: () => void;
-  formData: {
-    firstName: string;
-    lastName: string;
-    bio: string;
-    location: string;
-    profilePicture?: string;
-    bannerImage?: string;
-  };
+  formData: ProfileForm;
   saveProfile: () => void;
-  updateFormField: (field: string, value: string) => void;
+  updateFormField: (field: keyof ProfileForm, value: string) => void;
   isUpdating: boolean;
 }
 
@@ -35,24 +29,18 @@ const EditProfileModal = ({
   saveProfile,
   isUpdating,
 }: EditProfileModalProps) => {
-  // Pick image from gallery
+  /** Select image from gallery */
   const pickImage = async (field: "profilePicture" | "bannerImage") => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // correct
       allowsEditing: true,
-      aspect: undefined,
       quality: 1,
     });
 
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const selectedImageUri = result.assets[0].uri;
-      updateFormField(field, selectedImageUri);
+    if (!result.canceled) {
+      const uri = result.assets[0].uri;
+      updateFormField(field, uri);
     }
-  };
-
-  const handleSave = () => {
-    saveProfile();
-    onClose();
   };
 
   return (
@@ -70,9 +58,9 @@ const EditProfileModal = ({
         <Text className="text-lg font-semibold">Edit Profile</Text>
 
         <TouchableOpacity
-          onPress={handleSave}
+          onPress={saveProfile}
           disabled={isUpdating}
-          className={`${isUpdating ? "opacity-50" : ""}`}
+          className={isUpdating ? "opacity-50" : ""}
         >
           {isUpdating ? (
             <ActivityIndicator size="small" color="#1DA1F2" />
@@ -83,7 +71,7 @@ const EditProfileModal = ({
       </View>
 
       <ScrollView
-        className="flex-1 px-4 py-6"
+        className="px-4 py-6"
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         {/* Banner Image */}
@@ -92,11 +80,11 @@ const EditProfileModal = ({
           className="mb-4"
         >
           <Text className="text-blue-500 mb-2">Change Cover Photo</Text>
+
           {formData.bannerImage ? (
             <Image
               source={{ uri: formData.bannerImage }}
               className="w-full h-32 rounded-lg"
-              resizeMode="cover"
             />
           ) : (
             <View className="w-full h-32 bg-gray-200 rounded-lg justify-center items-center">
@@ -111,11 +99,11 @@ const EditProfileModal = ({
           className="mb-6"
         >
           <Text className="text-blue-500 mb-2">Change Profile Picture</Text>
+
           {formData.profilePicture ? (
             <Image
               source={{ uri: formData.profilePicture }}
               className="w-32 h-32 rounded-full"
-              resizeMode="cover"
             />
           ) : (
             <View className="w-32 h-32 bg-gray-200 rounded-full justify-center items-center">
@@ -124,35 +112,32 @@ const EditProfileModal = ({
           )}
         </TouchableOpacity>
 
-        {/* Text fields */}
+        {/* Text Fields */}
         <View className="space-y-4">
           <View>
             <Text className="text-gray-500 text-sm mb-2">First Name</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg p-3 text-base"
+              className="border border-gray-200 rounded-lg p-3"
               value={formData.firstName}
-              onChangeText={(text) => updateFormField("firstName", text)}
-              placeholder="Your first name"
+              onChangeText={(t) => updateFormField("firstName", t)}
             />
           </View>
 
           <View>
             <Text className="text-gray-500 text-sm mb-2">Last Name</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg p-3 text-base"
+              className="border border-gray-200 rounded-lg p-3"
               value={formData.lastName}
-              onChangeText={(text) => updateFormField("lastName", text)}
-              placeholder="Your last name"
+              onChangeText={(t) => updateFormField("lastName", t)}
             />
           </View>
 
           <View>
             <Text className="text-gray-500 text-sm mb-2">Bio</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg p-3 text-base"
+              className="border border-gray-200 rounded-lg p-3"
               value={formData.bio}
-              onChangeText={(text) => updateFormField("bio", text)}
-              placeholder="Tell us about yourself"
+              onChangeText={(t) => updateFormField("bio", t)}
               multiline
               numberOfLines={3}
               textAlignVertical="top"
@@ -162,10 +147,9 @@ const EditProfileModal = ({
           <View>
             <Text className="text-gray-500 text-sm mb-2">Location</Text>
             <TextInput
-              className="border border-gray-200 rounded-lg p-3 text-base"
+              className="border border-gray-200 rounded-lg p-3"
               value={formData.location}
-              onChangeText={(text) => updateFormField("location", text)}
-              placeholder="Where are you located?"
+              onChangeText={(t) => updateFormField("location", t)}
             />
           </View>
         </View>

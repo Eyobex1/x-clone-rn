@@ -1,59 +1,62 @@
-// hooks/useProfile.ts
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useApiClient, userApi } from "../utils/api";
 import { useCurrentUser } from "./useCurrentUser";
 import Toast from "react-native-toast-message";
 
-/**
- * Custom hook for managing user profile operations
- */
+/** Valid form fields */
+export interface ProfileForm {
+  firstName: string;
+  lastName: string;
+  bio: string;
+  location: string;
+  profilePicture?: string;
+  bannerImage?: string;
+}
+
 export const useProfile = () => {
-  const api = useApiClient(); // Axios instance
+  const api = useApiClient(); // axios instance
   const queryClient = useQueryClient();
 
-  // State for controlling edit profile modal visibility
+  /** Edit modal state */
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
 
-  // Form state for editing profile
-  const [formData, setFormData] = useState({
+  /** Profile edit form */
+  const [formData, setFormData] = useState<ProfileForm>({
     firstName: "",
     lastName: "",
     bio: "",
     location: "",
+    profilePicture: "",
+    bannerImage: "",
   });
 
-  // Current logged-in user
   const { currentUser } = useCurrentUser();
 
-  // Mutation for updating profile
+  /** Update profile API call */
   const updateProfileMutation = useMutation({
-    mutationFn: (profileData: any) => userApi.updateProfile(api, profileData),
+    mutationFn: (profileData: FormData) =>
+      userApi.updateProfile(api, profileData),
     onSuccess: () => {
-      // Refresh user data after update
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
       setIsEditModalVisible(false);
 
-      // Show success toast
       Toast.show({
         type: "success",
-        text1: "Success",
-        text2: "Profile updated successfully!",
+        text1: "Profile Updated",
+        text2: "Your profile was updated successfully.",
       });
     },
     onError: (error: any) => {
-      // Show error toast
       Toast.show({
         type: "error",
-        text1: "Error",
-        text2: error.response?.data?.error || "Failed to update profile",
+        text1: "Update Failed",
+        text2: error.response?.data?.error || "Something went wrong",
       });
     },
   });
 
-  /**
-   * Open edit profile modal and populate form fields with current user data
-   */
+  /** Open edit modal & fill form with current profile */
   const openEditModal = () => {
     if (currentUser) {
       setFormData({
@@ -61,50 +64,53 @@ export const useProfile = () => {
         lastName: currentUser.lastName || "",
         bio: currentUser.bio || "",
         location: currentUser.location || "",
+        profilePicture: currentUser.profilePicture || "",
+        bannerImage: currentUser.bannerImage || "",
       });
     }
     setIsEditModalVisible(true);
   };
 
-  /**
-   * Update a single field in the profile form
-   * @param field - form field name
-   * @param value - new value for the field
-   */
-  const updateFormField = (field: string, value: string) => {
+  /** Update a single form field */
+  const updateFormField = (field: keyof ProfileForm, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  /** Save profile changes */
+  const saveProfile = () => {
+    const form = new FormData();
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (!value) return;
+
+      // Only upload if file is a local URI
+      if (
+        (key === "profilePicture" || key === "bannerImage") &&
+        value.startsWith("file://")
+      ) {
+        form.append(key, {
+          uri: value,
+          name: `${key}.jpg`,
+          type: "image/jpeg",
+        } as any);
+      } else {
+        form.append(key, value);
+      }
+    });
+
+    updateProfileMutation.mutate(form);
+  };
+
   return {
-    // Modal state
     isEditModalVisible,
-    // Form state
     formData,
-    // Handlers
     openEditModal,
     closeEditModal: () => setIsEditModalVisible(false),
-    saveProfile: () => {
-      const form = new FormData();
-
-      Object.entries(formData).forEach(([key, value]) => {
-        if (!value) return;
-
-        if (key === "profilePicture" || key === "bannerImage") {
-          form.append(key, {
-            uri: value,
-            name: `${key}.jpg`,
-            type: "image/jpeg",
-          } as any);
-        } else {
-          form.append(key, value);
-        }
-      });
-
-      updateProfileMutation.mutate(form);
-    },
-    // Status flags
+    updateFormField,
+    saveProfile,
     isUpdating: updateProfileMutation.isPending,
-    // Refetch user data manually
+
+    /** Manual refresh */
     refetch: () => queryClient.invalidateQueries({ queryKey: ["authUser"] }),
   };
 };
