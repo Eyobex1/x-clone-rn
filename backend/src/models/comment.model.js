@@ -14,13 +14,28 @@ const commentSchema = new mongoose.Schema(
     },
     content: {
       type: String,
-      required: true,
       maxLength: 280,
     },
+
+    // Optional image upload (Facebook supports image comments)
+    image: {
+      type: String,
+      default: null,
+    },
+
+    // Likes (you already have this)
     likes: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
+      },
+    ],
+
+    // Replies (nested comments)
+    replies: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Comment",
       },
     ],
   },
