@@ -17,6 +17,13 @@ const notificationSchema = new mongoose.Schema(
       required: true,
       enum: ["follow", "like", "comment"],
     },
+
+    // ⭐ NEW: mark notification unread/read
+    isRead: {
+      type: Boolean,
+      default: false, // default = UNREAD like Facebook
+    },
+
     post: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Post",
@@ -32,5 +39,4 @@ const notificationSchema = new mongoose.Schema(
 );
 
 const Notification = mongoose.model("Notification", notificationSchema);
-
 export default Notification;
