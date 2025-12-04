@@ -6,13 +6,23 @@ import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js";
 
 /* ============================================================
-   GET ALL COMMENTS FOR A POST (Facebook: top-level comments)
+   GET ALL COMMENTS FOR A POST (Newest First + Pagination)
    ============================================================ */
 export const getComments = asyncHandler(async (req, res) => {
   const { postId } = req.params;
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
 
+  const skip = (page - 1) * limit;
+
+  // Total number of comments for pagination
+  const totalComments = await Comment.countDocuments({ post: postId });
+
+  // Fetch paginated comments sorted by newest first
   const comments = await Comment.find({ post: postId })
-    .sort({ createdAt: -1 }) // newest first
+    .sort({ createdAt: -1 }) // Newest comments first
+    .skip(skip)
+    .limit(limit)
     .populate("user", "username firstName lastName profilePicture")
     .populate({
       path: "replies",
@@ -22,7 +32,12 @@ export const getComments = asyncHandler(async (req, res) => {
       },
     });
 
-  res.status(200).json({ comments });
+  res.status(200).json({
+    comments,
+    page,
+    totalPages: Math.ceil(totalComments / limit),
+    hasMore: page * limit < totalComments,
+  });
 });
 
 /* ============================================================
