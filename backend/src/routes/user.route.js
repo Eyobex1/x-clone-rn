@@ -2,6 +2,8 @@ import express from "express";
 import {
   followUser,
   getCurrentUser,
+  getFollowers,
+  getFollowing,
   getUserProfile,
   syncUser,
   updateProfile,
