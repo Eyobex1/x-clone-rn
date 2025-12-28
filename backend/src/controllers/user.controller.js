@@ -5,6 +5,7 @@ import cloudinary from "../config/cloudinary.js";
 import { getAuth } from "@clerk/express";
 import { clerkClient } from "@clerk/express";
 
+// Get user profile by username
 export const getUserProfile = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const user = await User.findOne({ username });
@@ -13,41 +14,35 @@ export const getUserProfile = asyncHandler(async (req, res) => {
   res.status(200).json({ user });
 });
 
+// Update current user's profile
 export const updateProfile = asyncHandler(async (req, res) => {
   const { userId } = getAuth(req);
-
   const user = await User.findOne({ clerkId: userId });
   if (!user) return res.status(404).json({ error: "User not found" });
 
   let updateData = req.body;
 
-  // If profile picture exists, upload to Cloudinary (base64)
+  // Upload profile picture
   if (req.files?.profilePicture?.[0]) {
     const file = req.files.profilePicture[0];
-
     const base64Img = `data:${file.mimetype};base64,${file.buffer.toString(
       "base64"
     )}`;
-
     const uploaded = await cloudinary.uploader.upload(base64Img, {
       folder: "profile_pictures",
     });
-
     updateData.profilePicture = uploaded.secure_url;
   }
 
-  // If banner image exists
+  // Upload banner image
   if (req.files?.bannerImage?.[0]) {
     const file = req.files.bannerImage[0];
-
     const base64Img = `data:${file.mimetype};base64,${file.buffer.toString(
       "base64"
     )}`;
-
     const uploaded = await cloudinary.uploader.upload(base64Img, {
       folder: "banner_images",
     });
-
     updateData.bannerImage = uploaded.secure_url;
   }
 
@@ -58,20 +53,17 @@ export const updateProfile = asyncHandler(async (req, res) => {
   res.status(200).json({ user: updatedUser });
 });
 
+// Sync user from Clerk
 export const syncUser = asyncHandler(async (req, res) => {
   const { userId } = getAuth(req);
 
-  // check if user already exists in mongodb
   const existingUser = await User.findOne({ clerkId: userId });
-  if (existingUser) {
+  if (existingUser)
     return res
       .status(200)
       .json({ user: existingUser, message: "User already exists" });
-  }
 
-  // create new user from Clerk data
   const clerkUser = await clerkClient.users.getUser(userId);
-
   const userData = {
     clerkId: userId,
     email: clerkUser.emailAddresses[0].emailAddress,
@@ -79,30 +71,30 @@ export const syncUser = asyncHandler(async (req, res) => {
     lastName: clerkUser.lastName || "",
     username: clerkUser.emailAddresses[0].emailAddress.split("@")[0],
     profilePicture: clerkUser.imageUrl || "",
+    followers: [],
+    following: [],
   };
 
   const user = await User.create(userData);
-
   res.status(201).json({ user, message: "User created successfully" });
 });
 
+// Get current logged-in user
 export const getCurrentUser = asyncHandler(async (req, res) => {
   const { userId } = getAuth(req);
   const user = await User.findOne({ clerkId: userId });
-
   if (!user) return res.status(404).json({ error: "User not found" });
-
   res.status(200).json({ user });
 });
 
+// Follow / unfollow user
 export const followUser = asyncHandler(async (req, res) => {
-  const { userId: currentUserId } = getAuth(req); // Clerk ID of current user
-  const { targetUserId } = req.params; // This is the Clerk ID of the target user
+  const { userId: currentUserId } = getAuth(req);
+  const { targetUserId } = req.params;
 
   if (currentUserId === targetUserId)
     return res.status(400).json({ error: "You cannot follow yourself" });
 
-  // Find users by Clerk ID
   const currentUser = await User.findOne({ clerkId: currentUserId });
   const targetUser = await User.findOne({ clerkId: targetUserId });
 
@@ -132,7 +124,6 @@ export const followUser = asyncHandler(async (req, res) => {
       { $addToSet: { followers: currentUserId } }
     );
 
-    // Optional: create notification
     await Notification.create({
       from: currentUserId,
       to: targetUserId,
@@ -153,7 +144,6 @@ export const getFollowers = asyncHandler(async (req, res) => {
   const user = await User.findOne({ username });
   if (!user) return res.status(404).json({ error: "User not found" });
 
-  // default to empty array to avoid $in: undefined
   const followers = await User.find({
     clerkId: { $in: user.followers || [] },
   }).select("_id firstName lastName username profilePicture");
