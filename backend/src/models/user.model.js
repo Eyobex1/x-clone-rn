@@ -1,5 +1,3 @@
-import mongoose from "mongoose";
-
 const userSchema = new mongoose.Schema(
   {
     clerkId: {
@@ -42,16 +40,14 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    followers: [
-      {
-        type: String, // ✅ store Clerk IDs as string
-      },
-    ],
-    following: [
-      {
-        type: String, // ✅ store Clerk IDs as string
-      },
-    ],
+    followers: {
+      type: [String], // store Clerk IDs as string
+      default: [], // ✅ ensure empty array if not set
+    },
+    following: {
+      type: [String], // store Clerk IDs as string
+      default: [], // ✅ ensure empty array if not set
+    },
   },
   { timestamps: true }
 );
