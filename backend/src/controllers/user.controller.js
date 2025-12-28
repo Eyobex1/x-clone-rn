@@ -146,3 +146,29 @@ export const followUser = asyncHandler(async (req, res) => {
       : "User followed successfully",
   });
 });
+
+// Get followers list
+export const getFollowers = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  const user = await User.findOne({ username });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const followers = await User.find({
+    clerkId: { $in: user.followers },
+  }).select("_id firstName lastName username profilePicture");
+
+  res.status(200).json({ users: followers });
+});
+
+// Get following list
+export const getFollowing = asyncHandler(async (req, res) => {
+  const { username } = req.params;
+  const user = await User.findOne({ username });
+  if (!user) return res.status(404).json({ error: "User not found" });
+
+  const following = await User.find({
+    clerkId: { $in: user.following },
+  }).select("_id firstName lastName username profilePicture");
+
+  res.status(200).json({ users: following });
+});

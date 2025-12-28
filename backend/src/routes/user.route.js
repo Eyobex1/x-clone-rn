@@ -27,4 +27,8 @@ router.put(
 );
 router.post("/follow/:targetUserId", protectRoute, followUser);
 
+// Followers / Following
+router.get("/profile/:username/followers", protectRoute, getFollowers);
+router.get("/profile/:username/following", protectRoute, getFollowing);
+
 export default router;
