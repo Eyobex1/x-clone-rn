@@ -87,6 +87,17 @@ const ProfileScreen = () => {
     );
   };
 
+  // Navigate to follower/following list
+  const navigateToFollowList = (type: "followers" | "following") => {
+    router.push({
+      pathname: "/screens/follower-list/follower-list",
+      params: {
+        username: localProfile?.username || username,
+        type,
+      },
+    });
+  };
+
   if (isProfileLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-white">
@@ -188,20 +199,33 @@ const ProfileScreen = () => {
         <Text className="text-gray-500">@{localProfile.username}</Text>
         <Text className="text-gray-900">{localProfile.bio}</Text>
 
-        {/* Followers / Following */}
-        <View className="flex-row mb-4 mt-2">
-          <Text className="mr-6 text-gray-900">
-            <Text className="font-bold">
-              {localProfile.following?.length ?? 0}
-            </Text>{" "}
-            Following
-          </Text>
-          <Text className="text-gray-900">
-            <Text className="font-bold">
-              {localProfile.followers?.length ?? 0}
-            </Text>{" "}
-            Followers
-          </Text>
+        {/* Followers / Following - NOW CLICKABLE */}
+        <View className="flex-row mb-4 mt-2 space-x-6">
+          {/* Following - Clickable */}
+          <TouchableOpacity
+            onPress={() => navigateToFollowList("following")}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row items-center">
+              <Text className="font-bold text-gray-900">
+                {localProfile.following?.length ?? 0}
+              </Text>
+              <Text className="text-gray-500 ml-1">Following</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Followers - Clickable */}
+          <TouchableOpacity
+            onPress={() => navigateToFollowList("followers")}
+            activeOpacity={0.7}
+          >
+            <View className="flex-row items-center">
+              <Text className="font-bold text-gray-900 ml-2">
+                {localProfile.followers?.length ?? 0}
+              </Text>
+              <Text className="text-gray-500 ml-1">Followers</Text>
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
     </View>

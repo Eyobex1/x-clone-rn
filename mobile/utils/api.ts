@@ -97,9 +97,12 @@ export const userApi = {
         "Content-Type": "multipart/form-data",
       },
     }),
-
   followUser: (api: AxiosInstance, targetUserId: string) =>
     api.post(`/users/follow/${targetUserId}`),
+  getFollowers: (api: AxiosInstance, username: string) =>
+    api.get(`/users/profile/${username}/followers`),
+  getFollowing: (api: AxiosInstance, username: string) =>
+    api.get(`/users/profile/${username}/following`),
 };
 
 export const postApi = {
@@ -131,6 +134,15 @@ export const postApi = {
 export const commentApi = {
   createComment: (api: AxiosInstance, postId: string, content: string) =>
     api.post(`/comments/post/${postId}`, { content }),
+
+  replyToComment: (api: AxiosInstance, commentId: string, content: string) =>
+    api.post(`/comments/${commentId}/reply`, { content }),
+
+  toggleLikeComment: (api: AxiosInstance, commentId: string) =>
+    api.post(`/comments/${commentId}/like`),
+
+  deleteComment: (api: AxiosInstance, commentId: string) =>
+    api.delete(`/comments/${commentId}`),
 };
 
 export const searchApi = {

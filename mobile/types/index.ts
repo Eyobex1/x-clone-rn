@@ -1,5 +1,3 @@
-// types.ts
-
 // ===== User =====
 export interface User {
   _id: string;
@@ -13,8 +11,12 @@ export interface User {
 export interface Comment {
   _id: string;
   content: string;
-  createdAt: string;
   user: User;
+  likes: string[];
+  replies?: Comment[];
+  image?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // ===== Post =====
@@ -25,6 +27,7 @@ export interface Post {
   imageWidth?: number;
   imageHeight?: number;
   createdAt: string;
+  updatedAt?: string;
   user: User;
   likes: string[]; // array of user IDs
   comments: Comment[];
@@ -52,6 +55,8 @@ export interface Notification {
     content: string;
   };
   createdAt: string;
+  uniqueKey: string;
+  isRead?: boolean;
 }
 
 // ===== UserProfile =====

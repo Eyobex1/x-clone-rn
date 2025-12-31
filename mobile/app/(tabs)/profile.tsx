@@ -14,7 +14,7 @@ import { useRouter } from "expo-router";
 
 import EditProfileModal from "@/components/EditProfileModal";
 import PostsList from "@/components/PostsList";
-import PostComposer from "@/components/PostComposer"; // Add PostComposer
+import PostComposer from "@/components/PostComposer";
 import SignOutButton from "@/components/SignOutButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfile } from "@/hooks/useProfile";
@@ -47,7 +47,6 @@ const ProfileScreens = () => {
     );
   }
 
-  // Image press opens fullscreen viewer
   const handleImagePress = (imageUri?: string) => {
     if (!imageUri) return;
     router.push({
@@ -56,7 +55,13 @@ const ProfileScreens = () => {
     });
   };
 
-  // Profile header component
+  const goToUsersList = (type: "followers" | "following") => {
+    router.push({
+      pathname: "/screens/follower-list/follower-list",
+      params: { type, username: currentUser.username },
+    });
+  };
+
   const renderProfileHeader = (
     <View>
       {/* Banner image */}
@@ -120,7 +125,10 @@ const ProfileScreens = () => {
           </View>
 
           <View className="flex-row">
-            <TouchableOpacity className="mr-6">
+            <TouchableOpacity
+              className="mr-6"
+              onPress={() => goToUsersList("following")}
+            >
               <Text className="text-gray-900">
                 <Text className="font-bold">
                   {currentUser.following?.length}
@@ -128,7 +136,8 @@ const ProfileScreens = () => {
                 <Text className="text-gray-500"> Following</Text>
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+
+            <TouchableOpacity onPress={() => goToUsersList("followers")}>
               <Text className="text-gray-900">
                 <Text className="font-bold">
                   {currentUser.followers?.length}
@@ -142,12 +151,9 @@ const ProfileScreens = () => {
     </View>
   );
 
-  // Combine PostComposer + profile header as ListHeaderComponent
   const listHeader = (
     <View>
-      {/* Profile header */}
       {renderProfileHeader}
-      {/* Composer */}
       <PostComposer />
     </View>
   );
@@ -164,11 +170,9 @@ const ProfileScreens = () => {
             {posts?.length ?? 0} Posts
           </Text>
         </View>
-
         <SignOutButton />
       </View>
 
-      {/* PostsList with PostComposer + Profile header */}
       <PostsList
         username={currentUser.username}
         ListHeaderComponent={listHeader}
@@ -182,7 +186,6 @@ const ProfileScreens = () => {
         }
       />
 
-      {/* Edit profile modal */}
       <EditProfileModal
         isVisible={isEditModalVisible}
         onClose={closeEditModal}
