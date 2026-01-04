@@ -7,52 +7,136 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
-import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Feather, MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useFollowUser } from "@/hooks/useFollowUser";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { UserProfile } from "@/types";
+import * as Haptics from "expo-haptics";
 
 interface UserCardProps {
   user: UserProfile;
   currentUserClerkId: string;
   showFollowButton?: boolean;
   onFollowChange?: (userId: string, isFollowing: boolean) => void;
-  showStats?: boolean;
-  compact?: boolean;
+  index?: number;
 }
+
+const DEFAULT_AVATAR_COLORS = [
+  "#FF6B6B",
+  "#4ECDC4",
+  "#FFD166",
+  "#06D6A0",
+  "#118AB2",
+  "#EF476F",
+  "#9D4EDD",
+  "#F97316",
+];
 
 const UserCard: React.FC<UserCardProps> = ({
   user,
   currentUserClerkId,
   showFollowButton = true,
   onFollowChange,
-  showStats = false,
-  compact = false,
+  index = 0,
 }) => {
   const router = useRouter();
   const { currentUser } = useCurrentUser();
   const isCurrentUser = user.clerkId === currentUserClerkId;
-  const [scaleAnim] = useState(new Animated.Value(1));
 
-  // Use the follow hook
+  const [scaleAnim] = useState(new Animated.Value(1));
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(20));
+
+  const [optimisticIsFollowing, setOptimisticIsFollowing] = useState(false);
+  const [isMutating, setIsMutating] = useState(false);
+
   const followMutation = useFollowUser(user.username, user.clerkId || "");
 
-  // Local state for optimistic updates
-  const [optimisticIsFollowing, setOptimisticIsFollowing] = useState(false);
-  const [isOptimisticUpdate, setIsOptimisticUpdate] = useState(false);
+  const getAvatarColor = (username: string) => {
+    if (!username) return DEFAULT_AVATAR_COLORS[0];
+    const hash = username.split("").reduce((acc, char) => {
+      return char.charCodeAt(0) + ((acc << 5) - acc);
+    }, 0);
+    return DEFAULT_AVATAR_COLORS[Math.abs(hash) % DEFAULT_AVATAR_COLORS.length];
+  };
 
-  // Initialize optimistic state based on user data
+  const avatarColor = getAvatarColor(user.username);
+  const userInitial = (
+    user.firstName?.[0] ||
+    user.username?.[0] ||
+    "U"
+  ).toUpperCase();
+
+  // DEBUG: Log user data to see what we're getting
   useEffect(() => {
-    // Check if current user follows this user
-    if (currentUser && user.clerkId) {
-      const isFollowing =
-        currentUser.following?.includes(user.clerkId) || false;
-      setOptimisticIsFollowing(isFollowing);
+    console.log("UserCard rendering:", {
+      username: user.username,
+      followers: user.followers,
+      followersType: typeof user.followers,
+      followersIsArray: Array.isArray(user.followers),
+      posts: user.posts,
+      postsType: typeof user.posts,
+      postsIsArray: Array.isArray(user.posts),
+    });
+  }, [user]);
+
+  // Calculate real counts with safety checks
+  const getFollowersCount = () => {
+    if (!user.followers) return 0;
+    if (Array.isArray(user.followers)) {
+      return user.followers.length;
     }
+    if (typeof user.followers === "number") {
+      return user.followers;
+    }
+    if (typeof user.followers === "string") {
+      const num = parseInt(user.followers);
+      return isNaN(num) ? 0 : num;
+    }
+    return 0;
+  };
+
+  const getPostsCount = () => {
+    if (!user.posts) return 0;
+    if (Array.isArray(user.posts)) {
+      return user.posts.length;
+    }
+    if (typeof user.posts === "number") {
+      return user.posts;
+    }
+    if (typeof user.posts === "string") {
+      const num = parseInt(user.posts);
+      return isNaN(num) ? 0 : num;
+    }
+    return 0;
+  };
+
+  const followersCount = getFollowersCount();
+  const postsCount = getPostsCount();
+
+  useEffect(() => {
+    const isFollowing = currentUser?.following?.includes(user.clerkId) || false;
+    setOptimisticIsFollowing(isFollowing);
+
+    setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, index * 30);
   }, [user.clerkId, currentUser]);
 
   const navigateToProfile = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
       pathname: "/screens/profile/[username]",
       params: { username: user.username },
@@ -66,55 +150,47 @@ const UserCard: React.FC<UserCardProps> = ({
         duration: 100,
         useNativeDriver: true,
       }),
-      Animated.timing(scaleAnim, {
+      Animated.spring(scaleAnim, {
         toValue: 1,
-        duration: 100,
+        tension: 150,
+        friction: 3,
         useNativeDriver: true,
       }),
     ]).start();
   };
 
   const handleFollowToggle = () => {
-    if (!user.clerkId) {
-      console.error("No clerkId for user:", user.username);
-      return;
-    }
+    if (!user.clerkId) return;
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     animateButton();
 
-    // Optimistic update: immediately change the UI
     const newFollowingState = !optimisticIsFollowing;
     setOptimisticIsFollowing(newFollowingState);
-    setIsOptimisticUpdate(true);
+    setIsMutating(true);
 
-    // Notify parent component if callback provided
     if (onFollowChange) {
       onFollowChange(user._id, newFollowingState);
     }
 
-    // Make the API call
     followMutation.mutate(undefined, {
-      onError: (error) => {
-        // Revert optimistic update if API call fails
+      onError: () => {
         setOptimisticIsFollowing(!newFollowingState);
-        setIsOptimisticUpdate(false);
+        setIsMutating(false);
         if (onFollowChange) {
           onFollowChange(user._id, !newFollowingState);
         }
-        console.error("Follow error:", error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       },
       onSuccess: () => {
-        setIsOptimisticUpdate(false);
+        setIsMutating(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       },
     });
   };
 
-  // Determine if follow button should be shown
-  const shouldShowFollowButton =
-    showFollowButton && !isCurrentUser && user.clerkId;
-  const isMutating = followMutation.status === "pending" || isOptimisticUpdate;
+  const shouldShowFollowButton = showFollowButton && !isCurrentUser;
 
-  // Format numbers
   const formatNumber = (num: number): string => {
     if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
     if (num >= 1000) return (num / 1000).toFixed(1) + "K";
@@ -122,115 +198,118 @@ const UserCard: React.FC<UserCardProps> = ({
   };
 
   return (
-    <View className="px-4 py-3 border-b border-gray-100 bg-white">
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }],
+      }}
+      className="px-4 py-3.5 bg-white active:bg-gray-50"
+    >
       <View className="flex-row items-center">
-        {/* Profile Image with Shadow Effect */}
-        <TouchableOpacity onPress={navigateToProfile} activeOpacity={0.8}>
+        {/* Profile Image */}
+        <TouchableOpacity onPress={navigateToProfile} activeOpacity={0.7}>
           <View className="relative">
-            {/* Gradient effect using multiple borders */}
-            <View className="absolute -inset-1 rounded-full bg-gradient-to-br from-pink-500 via-orange-500 to-teal-400 opacity-20" />
-            <View className="w-16 h-16 rounded-full border-4 border-white bg-white shadow-lg overflow-hidden">
-              <Image
-                source={{
-                  uri: user.profilePicture || "https://via.placeholder.com/150",
-                }}
-                className="w-full h-full"
-              />
+            <View className="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-orange-500" />
+            <View className="w-16 h-16 rounded-full border-4 border-white bg-white overflow-hidden">
+              {user.profilePicture ? (
+                <Image
+                  source={{ uri: user.profilePicture }}
+                  className="w-full h-full"
+                />
+              ) : (
+                <View
+                  className="w-full h-full items-center justify-center"
+                  style={{ backgroundColor: avatarColor }}
+                >
+                  <Text className="text-white font-bold text-xl">
+                    {userInitial}
+                  </Text>
+                </View>
+              )}
             </View>
-            {/* Online indicator */}
-            {optimisticIsFollowing && (
-              <View className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white items-center justify-center">
-                <Feather name="check" size={10} color="white" />
-              </View>
-            )}
           </View>
         </TouchableOpacity>
 
         {/* User Info */}
         <View className="flex-1 ml-4">
           <View className="flex-row items-start justify-between">
-            <View className="flex-1">
-              <TouchableOpacity onPress={navigateToProfile} activeOpacity={0.8}>
-                <View className="flex-row items-center flex-wrap">
-                  <Text className="font-bold text-gray-900 text-base">
-                    {user.firstName} {user.lastName}
-                  </Text>
-                  {optimisticIsFollowing && (
-                    <View className="ml-2 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-                      <Text className="text-blue-600 text-xs font-medium">
-                        Following
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                <Text className="text-gray-500 text-sm mt-0.5">
-                  @{user.username}
+            <TouchableOpacity
+              onPress={navigateToProfile}
+              activeOpacity={0.7}
+              className="flex-1"
+            >
+              <View className="flex-row items-center flex-wrap">
+                <Text className="text-gray-900 font-bold text-base">
+                  {user.firstName} {user.lastName}
                 </Text>
-              </TouchableOpacity>
+                {optimisticIsFollowing && (
+                  <View className="ml-2 px-2 py-0.5 rounded-full bg-blue-100">
+                    <Text className="text-blue-600 text-xs font-semibold">
+                      Following
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <Text className="text-gray-500 text-sm mt-0.5">
+                @{user.username}
+              </Text>
 
-              {!compact && user.bio && (
+              {user.bio && (
                 <Text className="text-gray-800 text-sm mt-2" numberOfLines={2}>
                   {user.bio}
                 </Text>
               )}
 
-              {showStats && !compact && (
-                <View className="flex-row items-center space-x-4 mt-2">
-                  <View className="flex-row items-center">
-                    <Text className="font-bold text-gray-900 text-sm">
-                      {formatNumber(user.posts?.length || 0)}
-                    </Text>
-                    <Text className="text-gray-500 text-xs ml-1">posts</Text>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Text className="font-bold text-gray-900 text-sm">
-                      {formatNumber(user.followers?.length || 0)}
-                    </Text>
-                    <Text className="text-gray-500 text-xs ml-1">
-                      followers
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center">
-                    <Text className="font-bold text-gray-900 text-sm">
-                      {formatNumber(user.following?.length || 0)}
-                    </Text>
-                    <Text className="text-gray-500 text-xs ml-1">
-                      following
-                    </Text>
-                  </View>
+              {/* Stats - Now showing real counts */}
+              <View className="flex-row items-center space-x-4 mt-3">
+                <View className="flex-row items-center">
+                  <Feather name="users" size={14} color="#6B7280" />
+                  <Text className="text-gray-900 font-bold text-sm ml-1.5">
+                    {formatNumber(followersCount)}
+                  </Text>
+                  <Text className="text-gray-500 text-xs ml-0.5">
+                    followers
+                  </Text>
                 </View>
-              )}
-            </View>
+                <View className="flex-row items-center">
+                  <Feather name="image" size={14} color="#6B7280" />
+                  <Text className="text-gray-900 font-bold text-sm ml-1.5">
+                    {formatNumber(postsCount)}
+                  </Text>
+                  <Text className="text-gray-500 text-xs ml-0.5">posts</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
 
             {/* Follow Button */}
             {shouldShowFollowButton ? (
               <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <TouchableOpacity
-                  className={`px-4 py-2 rounded-lg min-w-[88px] flex-row items-center justify-center ${
+                  className={`px-4 py-2.5 rounded-full flex-row items-center justify-center min-w-[100px] ${
                     optimisticIsFollowing
-                      ? "bg-white border border-gray-300 shadow-sm"
-                      : "bg-black shadow-md"
+                      ? "bg-white border border-gray-300"
+                      : "bg-black"
                   } ${isMutating && "opacity-70"}`}
                   onPress={handleFollowToggle}
                   disabled={isMutating}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                 >
                   {isMutating ? (
                     <ActivityIndicator
                       size="small"
-                      color={optimisticIsFollowing ? "#666" : "#fff"}
+                      color={optimisticIsFollowing ? "#000" : "#fff"}
                     />
                   ) : optimisticIsFollowing ? (
                     <>
-                      <MaterialIcons name="check" size={16} color="#666" />
-                      <Text className="text-gray-700 font-semibold text-sm ml-1">
+                      <MaterialIcons name="check" size={18} color="#000" />
+                      <Text className="text-gray-900 font-semibold text-sm ml-2">
                         Following
                       </Text>
                     </>
                   ) : (
                     <>
                       <Feather name="user-plus" size={16} color="#fff" />
-                      <Text className="text-white font-semibold text-sm ml-1">
+                      <Text className="text-white font-semibold text-sm ml-2">
                         Follow
                       </Text>
                     </>
@@ -239,95 +318,68 @@ const UserCard: React.FC<UserCardProps> = ({
               </Animated.View>
             ) : isCurrentUser ? (
               <TouchableOpacity
-                className="px-4 py-2 rounded-lg border border-gray-300 bg-white shadow-sm"
-                onPress={() => router.push("/(tabs)/profile")}
+                className="px-4 py-2.5 rounded-full border border-gray-300 bg-white"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push("/(tabs)/profile");
+                }}
               >
-                <Text className="text-gray-700 font-semibold text-sm">
-                  Edit Profile
+                <Text className="text-gray-900 font-semibold text-sm">
+                  Edit
                 </Text>
               </TouchableOpacity>
             ) : (
               <TouchableOpacity
-                className="p-2 rounded-full hover:bg-gray-100"
+                className="w-9 h-9 rounded-full items-center justify-center"
                 onPress={() => {
-                  // Handle more options
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  // Open more options
                 }}
               >
-                <Ionicons name="ellipsis-horizontal" size={20} color="#666" />
+                <Ionicons
+                  name="ellipsis-horizontal"
+                  size={20}
+                  color="#6B7280"
+                />
               </TouchableOpacity>
             )}
           </View>
-
-          {/* Quick Actions (for compact view) */}
-          {compact && (
-            <View className="flex-row items-center space-x-4 mt-3">
-              <TouchableOpacity
-                className="flex-row items-center p-1.5 rounded-lg bg-gray-50"
-                activeOpacity={0.7}
-              >
-                <Ionicons name="heart-outline" size={18} color="#666" />
-                <Text className="text-gray-700 text-xs font-medium ml-1.5">
-                  {formatNumber(user.followers?.length || 0)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-row items-center p-1.5 rounded-lg bg-gray-50"
-                activeOpacity={0.7}
-              >
-                <Feather name="user" size={16} color="#666" />
-                <Text className="text-gray-700 text-xs font-medium ml-1.5">
-                  {formatNumber(user.following?.length || 0)}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-row items-center p-1.5 rounded-lg bg-gray-50"
-                activeOpacity={0.7}
-              >
-                <Feather name="image" size={16} color="#666" />
-                <Text className="text-gray-700 text-xs font-medium ml-1.5">
-                  {formatNumber(user.posts?.length || 0)}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
         </View>
       </View>
 
-      {/* Mutual Followers Badge */}
-      {!compact && optimisticIsFollowing && (
+      {/* Mutual Connections */}
+      {!isCurrentUser && followersCount > 0 && (
         <View className="mt-3 flex-row items-center">
-          <View className="flex-row -space-x-2">
+          <View className="flex-row -space-x-3">
             {[1, 2, 3].map((i) => (
               <View
                 key={i}
-                className={`w-6 h-6 rounded-full border-2 border-white ${
-                  i === 1
-                    ? "bg-blue-100"
-                    : i === 2
-                      ? "bg-green-100"
-                      : "bg-purple-100"
-                }`}
-              />
+                className="w-7 h-7 rounded-full border-2 border-white bg-gray-100 items-center justify-center"
+              >
+                <Text className="text-gray-600 text-xs font-semibold">
+                  {userInitial}
+                </Text>
+              </View>
             ))}
           </View>
           <Text className="text-gray-500 text-xs ml-2">
-            Followed by 3 mutual friends
+            Followed by {Math.min(3, followersCount)} mutual friends
           </Text>
         </View>
       )}
 
-      {/* Verification Badge (Optional) */}
-      {(user.followers?.length || 0) > 1000 && (
+      {/* Verification Badge */}
+      {followersCount > 10000 && (
         <View className="mt-2 flex-row items-center">
-          <View className="w-4 h-4 rounded-full bg-blue-500 items-center justify-center mr-1">
+          <View className="w-4 h-4 rounded-full bg-blue-500 items-center justify-center mr-1.5">
             <Feather name="check" size={10} color="white" />
           </View>
-          <Text className="text-blue-600 text-xs font-medium">
-            Popular Creator
+          <Text className="text-blue-500 text-xs font-semibold">
+            Verified Creator
           </Text>
         </View>
       )}
-    </View>
+    </Animated.View>
   );
 };
 

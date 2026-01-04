@@ -10,31 +10,87 @@ export const useFollowUser = (username: string, targetUserClerkId: string) => {
   return useMutation({
     mutationFn: () => userApi.followUser(api, targetUserClerkId),
     onMutate: async () => {
+      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["userProfile", username] });
+      await queryClient.cancelQueries({ queryKey: ["followList"] });
+      await queryClient.cancelQueries({ queryKey: ["currentUser"] });
 
-      const previousData = queryClient.getQueryData(["userProfile", username]);
+      // Snapshot previous values
+      const previousUserProfile = queryClient.getQueryData([
+        "userProfile",
+        username,
+      ]);
+      const previousFollowList = queryClient.getQueryData(["followList"]);
+      const previousCurrentUser = queryClient.getQueryData(["currentUser"]);
 
-      // Optimistic update
-      queryClient.setQueryData(["userProfile", username], (oldData: any) => {
-        if (!oldData) return oldData;
-
-        const isFollowing = oldData.followers?.includes(currentUserId);
-
+      // Optimistically update user profile
+      queryClient.setQueryData(["userProfile", username], (old: any) => {
+        if (!old) return old;
+        const isCurrentlyFollowing = old.followers?.includes(currentUserId);
         return {
-          ...oldData,
-          followers: isFollowing
-            ? oldData.followers.filter((id: string) => id !== currentUserId)
-            : [...(oldData.followers || []), currentUserId],
+          ...old,
+          followers: isCurrentlyFollowing
+            ? old.followers.filter((id: string) => id !== currentUserId)
+            : [...(old.followers || []), currentUserId],
         };
       });
 
-      return { previousData };
+      // Optimistically update follow list
+      queryClient.setQueryData(["followList"], (old: any) => {
+        if (!old) return old;
+        return old.map((user: any) => {
+          if (user.clerkId === targetUserClerkId) {
+            const isCurrentlyFollowing =
+              user.followers?.includes(currentUserId);
+            return {
+              ...user,
+              followers: isCurrentlyFollowing
+                ? user.followers.filter((id: string) => id !== currentUserId)
+                : [...(user.followers || []), currentUserId],
+            };
+          }
+          return user;
+        });
+      });
+
+      // Optimistically update current user
+      queryClient.setQueryData(["currentUser"], (old: any) => {
+        if (!old) return old;
+        const isCurrentlyFollowing = old.following?.includes(targetUserClerkId);
+        return {
+          ...old,
+          following: isCurrentlyFollowing
+            ? old.following.filter((id: string) => id !== targetUserClerkId)
+            : [...(old.following || []), targetUserClerkId],
+        };
+      });
+
+      return {
+        previousUserProfile,
+        previousFollowList,
+        previousCurrentUser,
+      };
     },
     onError: (err, variables, context: any) => {
-      queryClient.setQueryData(["userProfile", username], context.previousData);
+      // Rollback on error
+      if (context?.previousUserProfile) {
+        queryClient.setQueryData(
+          ["userProfile", username],
+          context.previousUserProfile
+        );
+      }
+      if (context?.previousFollowList) {
+        queryClient.setQueryData(["followList"], context.previousFollowList);
+      }
+      if (context?.previousCurrentUser) {
+        queryClient.setQueryData(["currentUser"], context.previousCurrentUser);
+      }
     },
     onSettled: () => {
+      // Invalidate to refetch
       queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
+      queryClient.invalidateQueries({ queryKey: ["followList"] });
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },
   });
 };
