@@ -138,9 +138,7 @@ export const followUser = asyncHandler(async (req, res) => {
   });
 });
 
-// In user.controller.js - Update both getFollowers and getFollowing functions
-
-// Get followers list - UPDATED
+// Get followers list - UPDATED with clerkId
 export const getFollowers = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const user = await User.findOne({ username });
@@ -149,13 +147,13 @@ export const getFollowers = asyncHandler(async (req, res) => {
   const followers = await User.find({
     clerkId: { $in: user.followers || [] },
   }).select(
-    "_id firstName lastName username profilePicture followers following"
+    "_id clerkId firstName lastName username profilePicture bio location bannerImage createdAt followers following"
   );
 
   res.status(200).json({ users: followers });
 });
 
-// Get following list - UPDATED
+// Get following list - UPDATED with clerkId
 export const getFollowing = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const user = await User.findOne({ username });
@@ -164,7 +162,7 @@ export const getFollowing = asyncHandler(async (req, res) => {
   const following = await User.find({
     clerkId: { $in: user.following || [] },
   }).select(
-    "_id firstName lastName username profilePicture followers following"
+    "_id clerkId firstName lastName username profilePicture bio location bannerImage createdAt followers following"
   );
 
   res.status(200).json({ users: following });
