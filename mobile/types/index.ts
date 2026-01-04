@@ -74,4 +74,5 @@ export interface UserProfile {
   createdAt: string;
   posts?: Post[]; // optional, user's posts
   clerkId: string;
+  isFollowing: boolean;
 }
