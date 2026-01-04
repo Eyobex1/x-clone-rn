@@ -138,7 +138,7 @@ export const followUser = asyncHandler(async (req, res) => {
   });
 });
 
-// Get followers list
+// Get followers list - FIXED
 export const getFollowers = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const user = await User.findOne({ username });
@@ -146,12 +146,12 @@ export const getFollowers = asyncHandler(async (req, res) => {
 
   const followers = await User.find({
     clerkId: { $in: user.followers || [] },
-  }).select("_id firstName lastName username profilePicture");
+  }).select("_id firstName lastName username profilePicture followers posts");
 
   res.status(200).json({ users: followers });
 });
 
-// Get following list
+// Get following list - FIXED
 export const getFollowing = asyncHandler(async (req, res) => {
   const { username } = req.params;
   const user = await User.findOne({ username });
@@ -159,7 +159,7 @@ export const getFollowing = asyncHandler(async (req, res) => {
 
   const following = await User.find({
     clerkId: { $in: user.following || [] },
-  }).select("_id firstName lastName username profilePicture");
+  }).select("_id firstName lastName username profilePicture followers posts");
 
   res.status(200).json({ users: following });
 });
