@@ -10,12 +10,10 @@ export const useFollowUser = (username: string, targetUserClerkId: string) => {
   return useMutation({
     mutationFn: () => userApi.followUser(api, targetUserClerkId),
     onMutate: async () => {
-      // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ["userProfile", username] });
       await queryClient.cancelQueries({ queryKey: ["followList"] });
       await queryClient.cancelQueries({ queryKey: ["currentUser"] });
 
-      // Snapshot previous values
       const previousUserProfile = queryClient.getQueryData([
         "userProfile",
         username,
@@ -23,7 +21,6 @@ export const useFollowUser = (username: string, targetUserClerkId: string) => {
       const previousFollowList = queryClient.getQueryData(["followList"]);
       const previousCurrentUser = queryClient.getQueryData(["currentUser"]);
 
-      // Optimistically update user profile
       queryClient.setQueryData(["userProfile", username], (old: any) => {
         if (!old) return old;
         const isCurrentlyFollowing = old.followers?.includes(currentUserId);
@@ -35,9 +32,8 @@ export const useFollowUser = (username: string, targetUserClerkId: string) => {
         };
       });
 
-      // Optimistically update follow list
       queryClient.setQueryData(["followList"], (old: any) => {
-        if (!old) return old;
+        if (!old || !Array.isArray(old)) return old;
         return old.map((user: any) => {
           if (user.clerkId === targetUserClerkId) {
             const isCurrentlyFollowing =
@@ -47,13 +43,13 @@ export const useFollowUser = (username: string, targetUserClerkId: string) => {
               followers: isCurrentlyFollowing
                 ? user.followers.filter((id: string) => id !== currentUserId)
                 : [...(user.followers || []), currentUserId],
+              isFollowing: !isCurrentlyFollowing, // CRITICAL FIX
             };
           }
           return user;
         });
       });
 
-      // Optimistically update current user
       queryClient.setQueryData(["currentUser"], (old: any) => {
         if (!old) return old;
         const isCurrentlyFollowing = old.following?.includes(targetUserClerkId);
@@ -72,7 +68,6 @@ export const useFollowUser = (username: string, targetUserClerkId: string) => {
       };
     },
     onError: (err, variables, context: any) => {
-      // Rollback on error
       if (context?.previousUserProfile) {
         queryClient.setQueryData(
           ["userProfile", username],
@@ -87,9 +82,12 @@ export const useFollowUser = (username: string, targetUserClerkId: string) => {
       }
     },
     onSettled: () => {
-      // Invalidate to refetch
       queryClient.invalidateQueries({ queryKey: ["userProfile", username] });
-      queryClient.invalidateQueries({ queryKey: ["followList"] });
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          Array.isArray(query.queryKey) && query.queryKey[0] === "followList",
+      });
+
       queryClient.invalidateQueries({ queryKey: ["currentUser"] });
     },
   });

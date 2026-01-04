@@ -42,13 +42,16 @@ const UserCard: React.FC<UserCardProps> = ({
 }) => {
   const router = useRouter();
   const { currentUser } = useCurrentUser();
+
   const isCurrentUser = user.clerkId === currentUserClerkId;
 
   const [scaleAnim] = useState(new Animated.Value(1));
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(20));
 
-  const [optimisticIsFollowing, setOptimisticIsFollowing] = useState(false);
+  const [localIsFollowing, setLocalIsFollowing] = useState(
+    user.isFollowing || false
+  );
   const [isMutating, setIsMutating] = useState(false);
 
   const followMutation = useFollowUser(user.username, user.clerkId || "");
@@ -68,57 +71,14 @@ const UserCard: React.FC<UserCardProps> = ({
     "U"
   ).toUpperCase();
 
-  // DEBUG: Log user data to see what we're getting
-  useEffect(() => {
-    console.log("UserCard rendering:", {
-      username: user.username,
-      followers: user.followers,
-      followersType: typeof user.followers,
-      followersIsArray: Array.isArray(user.followers),
-      posts: user.posts,
-      postsType: typeof user.posts,
-      postsIsArray: Array.isArray(user.posts),
-    });
-  }, [user]);
-
-  // Calculate real counts with safety checks
-  const getFollowersCount = () => {
-    if (!user.followers) return 0;
-    if (Array.isArray(user.followers)) {
-      return user.followers.length;
-    }
-    if (typeof user.followers === "number") {
-      return user.followers;
-    }
-    if (typeof user.followers === "string") {
-      const num = parseInt(user.followers);
-      return isNaN(num) ? 0 : num;
-    }
-    return 0;
-  };
-
-  const getPostsCount = () => {
-    if (!user.posts) return 0;
-    if (Array.isArray(user.posts)) {
-      return user.posts.length;
-    }
-    if (typeof user.posts === "number") {
-      return user.posts;
-    }
-    if (typeof user.posts === "string") {
-      const num = parseInt(user.posts);
-      return isNaN(num) ? 0 : num;
-    }
-    return 0;
-  };
-
-  const followersCount = getFollowersCount();
-  const postsCount = getPostsCount();
+  const followersCount = Array.isArray(user.followers)
+    ? user.followers.length
+    : 0;
+  const followingCount = Array.isArray(user.following)
+    ? user.following.length
+    : 0;
 
   useEffect(() => {
-    const isFollowing = currentUser?.following?.includes(user.clerkId) || false;
-    setOptimisticIsFollowing(isFollowing);
-
     setTimeout(() => {
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -133,7 +93,7 @@ const UserCard: React.FC<UserCardProps> = ({
         }),
       ]).start();
     }, index * 30);
-  }, [user.clerkId, currentUser]);
+  }, [index]);
 
   const navigateToProfile = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -160,13 +120,13 @@ const UserCard: React.FC<UserCardProps> = ({
   };
 
   const handleFollowToggle = () => {
-    if (!user.clerkId) return;
+    if (!user.clerkId || isMutating || isCurrentUser) return;
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     animateButton();
 
-    const newFollowingState = !optimisticIsFollowing;
-    setOptimisticIsFollowing(newFollowingState);
+    const newFollowingState = !localIsFollowing;
+    setLocalIsFollowing(newFollowingState);
     setIsMutating(true);
 
     if (onFollowChange) {
@@ -174,8 +134,8 @@ const UserCard: React.FC<UserCardProps> = ({
     }
 
     followMutation.mutate(undefined, {
-      onError: () => {
-        setOptimisticIsFollowing(!newFollowingState);
+      onError: (error) => {
+        setLocalIsFollowing(!newFollowingState);
         setIsMutating(false);
         if (onFollowChange) {
           onFollowChange(user._id, !newFollowingState);
@@ -206,7 +166,6 @@ const UserCard: React.FC<UserCardProps> = ({
       className="px-4 py-3.5 bg-white active:bg-gray-50"
     >
       <View className="flex-row items-center">
-        {/* Profile Image */}
         <TouchableOpacity onPress={navigateToProfile} activeOpacity={0.7}>
           <View className="relative">
             <View className="absolute -inset-0.5 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-orange-500" />
@@ -230,7 +189,6 @@ const UserCard: React.FC<UserCardProps> = ({
           </View>
         </TouchableOpacity>
 
-        {/* User Info */}
         <View className="flex-1 ml-4">
           <View className="flex-row items-start justify-between">
             <TouchableOpacity
@@ -242,7 +200,7 @@ const UserCard: React.FC<UserCardProps> = ({
                 <Text className="text-gray-900 font-bold text-base">
                   {user.firstName} {user.lastName}
                 </Text>
-                {optimisticIsFollowing && (
+                {localIsFollowing && shouldShowFollowButton && (
                   <View className="ml-2 px-2 py-0.5 rounded-full bg-blue-100">
                     <Text className="text-blue-600 text-xs font-semibold">
                       Following
@@ -260,60 +218,65 @@ const UserCard: React.FC<UserCardProps> = ({
                 </Text>
               )}
 
-              {/* Stats - Now showing real counts */}
               <View className="flex-row items-center space-x-4 mt-3">
                 <View className="flex-row items-center">
                   <Feather name="users" size={14} color="#6B7280" />
                   <Text className="text-gray-900 font-bold text-sm ml-1.5">
                     {formatNumber(followersCount)}
                   </Text>
-                  <Text className="text-gray-500 text-xs ml-0.5">
+                  <Text className="text-gray-500 text-xs ml-0.5 mr-2">
                     followers
                   </Text>
                 </View>
-                <View className="flex-row items-center">
-                  <Feather name="image" size={14} color="#6B7280" />
+                <Text>|</Text>
+                <View className="flex-row items-center ml-2">
+                  <Feather name="user-check" size={14} color="#6B7280" />
                   <Text className="text-gray-900 font-bold text-sm ml-1.5">
-                    {formatNumber(postsCount)}
+                    {formatNumber(followingCount)}
                   </Text>
-                  <Text className="text-gray-500 text-xs ml-0.5">posts</Text>
+                  <Text className="text-gray-500 text-xs ml-0.5">
+                    following
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
 
-            {/* Follow Button */}
             {shouldShowFollowButton ? (
               <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
                 <TouchableOpacity
-                  className={`px-4 py-2.5 rounded-full flex-row items-center justify-center min-w-[100px] ${
-                    optimisticIsFollowing
-                      ? "bg-white border border-gray-300"
-                      : "bg-black"
-                  } ${isMutating && "opacity-70"}`}
                   onPress={handleFollowToggle}
                   disabled={isMutating}
                   activeOpacity={0.7}
+                  style={isMutating ? { opacity: 0.7 } : {}}
                 >
-                  {isMutating ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={optimisticIsFollowing ? "#000" : "#fff"}
-                    />
-                  ) : optimisticIsFollowing ? (
-                    <>
-                      <MaterialIcons name="check" size={18} color="#000" />
-                      <Text className="text-gray-900 font-semibold text-sm ml-2">
-                        Following
-                      </Text>
-                    </>
-                  ) : (
-                    <>
-                      <Feather name="user-plus" size={16} color="#fff" />
-                      <Text className="text-white font-semibold text-sm ml-2">
-                        Follow
-                      </Text>
-                    </>
-                  )}
+                  <View
+                    className={`px-4 py-2.5 rounded-full flex-row items-center justify-center min-w-[100px] ${
+                      localIsFollowing
+                        ? "bg-white border border-gray-300"
+                        : "bg-black"
+                    }`}
+                  >
+                    {isMutating ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={localIsFollowing ? "#000" : "#fff"}
+                      />
+                    ) : localIsFollowing ? (
+                      <>
+                        <MaterialIcons name="check" size={18} color="#000" />
+                        <Text className="text-gray-900 font-semibold text-sm ml-2">
+                          Following
+                        </Text>
+                      </>
+                    ) : (
+                      <>
+                        <Feather name="user-plus" size={16} color="#fff" />
+                        <Text className="text-white font-semibold text-sm ml-2">
+                          Follow
+                        </Text>
+                      </>
+                    )}
+                  </View>
                 </TouchableOpacity>
               </Animated.View>
             ) : isCurrentUser ? (
@@ -333,7 +296,6 @@ const UserCard: React.FC<UserCardProps> = ({
                 className="w-9 h-9 rounded-full items-center justify-center"
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  // Open more options
                 }}
               >
                 <Ionicons
@@ -347,28 +309,6 @@ const UserCard: React.FC<UserCardProps> = ({
         </View>
       </View>
 
-      {/* Mutual Connections */}
-      {!isCurrentUser && followersCount > 0 && (
-        <View className="mt-3 flex-row items-center">
-          <View className="flex-row -space-x-3">
-            {[1, 2, 3].map((i) => (
-              <View
-                key={i}
-                className="w-7 h-7 rounded-full border-2 border-white bg-gray-100 items-center justify-center"
-              >
-                <Text className="text-gray-600 text-xs font-semibold">
-                  {userInitial}
-                </Text>
-              </View>
-            ))}
-          </View>
-          <Text className="text-gray-500 text-xs ml-2">
-            Followed by {Math.min(3, followersCount)} mutual friends
-          </Text>
-        </View>
-      )}
-
-      {/* Verification Badge */}
       {followersCount > 10000 && (
         <View className="mt-2 flex-row items-center">
           <View className="w-4 h-4 rounded-full bg-blue-500 items-center justify-center mr-1.5">

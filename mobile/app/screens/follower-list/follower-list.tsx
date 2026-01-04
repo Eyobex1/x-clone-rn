@@ -42,25 +42,44 @@ export default function FollowerListScreen() {
   const [localUsers, setLocalUsers] = useState<UserProfile[]>([]);
 
   // Tab indicator animation
-  const [tabIndicatorPosition] = useState(new Animated.Value(0));
+  const tabIndicatorPosition = useRef(new Animated.Value(0)).current;
   const [tabWidth, setTabWidth] = useState(SCREEN_WIDTH / 2);
   const tabContainerRef = useRef<View>(null);
+  const indicatorAnimation = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Update tab indicator when tab changes
+  // Initialize tab position
   useEffect(() => {
+    const initialPosition = type === "following" ? tabWidth : 0;
+    tabIndicatorPosition.setValue(initialPosition);
+  }, [type, tabWidth]);
+
+  // Update tab indicator
+  useEffect(() => {
+    if (indicatorAnimation.current) {
+      indicatorAnimation.current.stop();
+      indicatorAnimation.current = null;
+    }
+
     const toValue = activeTab === "followers" ? 0 : tabWidth;
-    Animated.spring(tabIndicatorPosition, {
+    indicatorAnimation.current = Animated.timing(tabIndicatorPosition, {
       toValue,
-      tension: 100,
-      friction: 12,
+      duration: 250,
       useNativeDriver: true,
-    }).start();
+    });
+
+    indicatorAnimation.current.start(() => {
+      indicatorAnimation.current = null;
+    });
   }, [activeTab, tabWidth]);
 
-  // Measure tab width when layout changes
+  // Measure tab width
   const handleTabLayout = (event: LayoutChangeEvent) => {
     const containerWidth = event.nativeEvent.layout.width;
-    setTabWidth(containerWidth / 2);
+    const newTabWidth = containerWidth / 2;
+    setTabWidth(newTabWidth);
+
+    const currentPosition = activeTab === "followers" ? 0 : newTabWidth;
+    tabIndicatorPosition.setValue(currentPosition);
   };
 
   const {
@@ -77,43 +96,30 @@ export default function FollowerListScreen() {
             ? await userApi.getFollowers(api, username)
             : await userApi.getFollowing(api, username);
 
-        console.log("API Response for", activeTab, ":", response.data);
-
         const usersData = response.data?.users || [];
 
         return usersData.map((user: any) => {
-          const isFollowing =
-            currentUser?.following?.includes(user.clerkId) || false;
-
-          // IMPORTANT: Log each user's data to debug
-          console.log("Processing user:", {
-            username: user.username,
-            followers: user.followers,
-            followersLength: user.followers?.length,
-            posts: user.posts,
-            postsLength: user.posts?.length,
-          });
+          const isFollowing = Array.isArray(user.followers)
+            ? user.followers.includes(currentUserClerkId)
+            : false;
 
           return {
-            _id: user._id || user.id || `temp-${Math.random()}`,
+            _id: user._id || `temp-${Math.random()}`,
             username: user.username || "",
             firstName: user.firstName || "",
             lastName: user.lastName || "",
             profilePicture: user.profilePicture || "",
             bio: user.bio || "",
             clerkId: user.clerkId || "",
-            // Ensure these are arrays and not null/undefined
             followers: Array.isArray(user.followers) ? user.followers : [],
             following: Array.isArray(user.following) ? user.following : [],
             location: user.location || "",
             bannerImage: user.bannerImage || "",
             createdAt: user.createdAt || new Date().toISOString(),
-            posts: Array.isArray(user.posts) ? user.posts : [],
             isFollowing,
-          } as UserProfile;
+          };
         });
       } catch (error: any) {
-        console.error("Error fetching follow list:", error);
         if (error.response?.status === 429) {
           Toast.show({
             type: "error",
@@ -137,7 +143,6 @@ export default function FollowerListScreen() {
             position: "bottom",
           });
         }
-
         throw error;
       }
     },
@@ -146,16 +151,6 @@ export default function FollowerListScreen() {
   });
 
   useEffect(() => {
-    console.log("Fetched users:", fetchedUsers.length);
-    if (fetchedUsers.length > 0) {
-      console.log("First user sample:", {
-        username: fetchedUsers[0].username,
-        followers: fetchedUsers[0].followers,
-        followersCount: fetchedUsers[0].followers?.length,
-        posts: fetchedUsers[0].posts,
-        postsCount: fetchedUsers[0].posts?.length,
-      });
-    }
     setLocalUsers(fetchedUsers);
   }, [fetchedUsers]);
 
@@ -181,15 +176,18 @@ export default function FollowerListScreen() {
     }
   }, [refetch]);
 
-  const handleTabChange = (tab: "followers" | "following") => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setActiveTab(tab);
-    router.setParams({ type: tab, username });
-  };
+  const handleTabChange = useCallback(
+    (tab: "followers" | "following") => {
+      if (tab === activeTab) return;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setActiveTab(tab);
+      router.setParams({ type: tab, username });
+    },
+    [activeTab, router, username]
+  );
 
   const renderHeader = () => (
     <View className="bg-white border-b border-gray-100">
-      {/* Header */}
       <View className="flex-row items-center justify-between px-4 pt-3 pb-3">
         <TouchableOpacity
           onPress={() => {
@@ -224,7 +222,6 @@ export default function FollowerListScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Tab Switcher - FIXED */}
       <View
         ref={tabContainerRef}
         className="relative"
@@ -260,7 +257,6 @@ export default function FollowerListScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Animated Indicator - NOW WORKING */}
         <Animated.View
           style={{
             position: "absolute",
