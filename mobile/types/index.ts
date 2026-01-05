@@ -69,10 +69,11 @@ export interface UserProfile {
   location?: string;
   profilePicture?: string;
   bannerImage?: string;
-  followers?: string[]; // array of user IDs
-  following?: string[]; // array of user IDs
+  followers?: string[];
+  following?: string[];
   createdAt: string;
-  posts?: Post[]; // optional, user's posts
+  posts?: Post[];
   clerkId: string;
   isFollowing: boolean;
+  postsCount?: number;
 }

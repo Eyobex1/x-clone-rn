@@ -8,6 +8,7 @@ import Toast from "react-native-toast-message";
 export interface ProfileForm {
   firstName: string;
   lastName: string;
+  username: string; // ADD THIS
   bio: string;
   location: string;
   profilePicture?: string;
@@ -15,16 +16,14 @@ export interface ProfileForm {
 }
 
 export const useProfile = () => {
-  const api = useApiClient(); // axios instance
+  const api = useApiClient();
   const queryClient = useQueryClient();
 
-  /** Edit modal state */
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-
-  /** Profile edit form */
   const [formData, setFormData] = useState<ProfileForm>({
     firstName: "",
     lastName: "",
+    username: "", // ADD THIS
     bio: "",
     location: "",
     profilePicture: "",
@@ -33,14 +32,12 @@ export const useProfile = () => {
 
   const { currentUser } = useCurrentUser();
 
-  /** Update profile API call */
   const updateProfileMutation = useMutation({
     mutationFn: (profileData: FormData) =>
       userApi.updateProfile(api, profileData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["authUser"] });
       setIsEditModalVisible(false);
-
       Toast.show({
         type: "success",
         text1: "Profile Updated",
@@ -56,12 +53,12 @@ export const useProfile = () => {
     },
   });
 
-  /** Open edit modal & fill form with current profile */
   const openEditModal = () => {
     if (currentUser) {
       setFormData({
         firstName: currentUser.firstName || "",
         lastName: currentUser.lastName || "",
+        username: currentUser.username || "", // ADD THIS
         bio: currentUser.bio || "",
         location: currentUser.location || "",
         profilePicture: currentUser.profilePicture || "",
@@ -71,19 +68,19 @@ export const useProfile = () => {
     setIsEditModalVisible(true);
   };
 
-  /** Update a single form field */
   const updateFormField = (field: keyof ProfileForm, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  /** Save profile changes */
   const saveProfile = () => {
     const form = new FormData();
 
     Object.entries(formData).forEach(([key, value]) => {
       if (!value) return;
 
-      // Only upload if file is a local URI
+      // Skip username since it can't be changed
+      if (key === "username") return;
+
       if (
         (key === "profilePicture" || key === "bannerImage") &&
         value.startsWith("file://")
@@ -109,8 +106,6 @@ export const useProfile = () => {
     updateFormField,
     saveProfile,
     isUpdating: updateProfileMutation.isPending,
-
-    /** Manual refresh */
     refetch: () => queryClient.invalidateQueries({ queryKey: ["authUser"] }),
   };
 };

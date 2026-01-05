@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-  TouchableOpacity,
-} from "react-native";
+import { View, Text, ActivityIndicator, RefreshControl } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -16,11 +9,8 @@ import { useAuth } from "@clerk/clerk-expo";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useFollowUser } from "@/hooks/useFollowUser";
 import PostsList from "@/components/PostsList";
-import { Feather } from "@expo/vector-icons";
+import ProfileHeader from "@/components/ProfileHeader";
 
-const DEFAULT_BANNER =
-  "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop";
-const DEFAULT_AVATAR = "https://via.placeholder.com/150";
 const TAB_BAR_HEIGHT = 60;
 
 const ProfileScreen = () => {
@@ -71,23 +61,6 @@ const ProfileScreen = () => {
     followMutation.mutate();
   };
 
-  const handleImagePress = (imageUri: string | undefined, isBanner = false) => {
-    let finalUri = imageUri;
-    if (!finalUri) {
-      finalUri = isBanner ? DEFAULT_BANNER : DEFAULT_AVATAR;
-    }
-    if (!finalUri.startsWith("http")) {
-      finalUri = `https://your-backend.com${finalUri}`;
-    }
-
-    router.push(
-      `/screens/image-viewer/image-viewer?uri=${encodeURIComponent(
-        finalUri
-      )}&t=${Date.now()}`
-    );
-  };
-
-  // Navigate to follower/following list
   const navigateToFollowList = (type: "followers" | "following") => {
     router.push({
       pathname: "/screens/follower-list/follower-list",
@@ -116,119 +89,16 @@ const ProfileScreen = () => {
 
   const isOwnProfile = localProfile.clerkId === currentUserId;
 
-  // Build profile header
   const renderProfileHeader = (
-    <View>
-      {/* Banner */}
-      <TouchableOpacity
-        onPress={() => handleImagePress(localProfile.bannerImage, true)}
-        activeOpacity={0.9}
-      >
-        <Image
-          source={{ uri: localProfile.bannerImage || DEFAULT_BANNER }}
-          className="w-full h-48"
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
-
-      {/* Avatar & Buttons */}
-      <View className="px-4 -mt-16 flex-row justify-between items-end">
-        <TouchableOpacity
-          onPress={() => handleImagePress(localProfile.profilePicture)}
-        >
-          <Image
-            source={{ uri: localProfile.profilePicture || DEFAULT_AVATAR }}
-            className="w-32 h-32 rounded-full border-4 border-white"
-          />
-        </TouchableOpacity>
-
-        {!isOwnProfile && (
-          <View className="flex-row space-x-2">
-            {/* Follow Button */}
-            <TouchableOpacity
-              onPress={handleFollowToggle}
-              disabled={isMutating}
-              className={`px-4 py-2 rounded-full flex-row items-center justify-center ${
-                isFollowing ? "bg-gray-200" : "bg-blue-500"
-              }`}
-            >
-              <Feather
-                name={isFollowing ? "user-check" : "user-plus"}
-                size={16}
-                color={isFollowing ? "#1f2937" : "white"}
-                className="mr-1"
-              />
-              <Text
-                className={`font-semibold text-base ${
-                  isFollowing ? "text-gray-800" : "text-white"
-                }`}
-              >
-                {isFollowing ? "Following" : "Follow"}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Message Button */}
-            <TouchableOpacity
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/messages",
-                  params: { username: localProfile.username },
-                })
-              }
-              className="bg-blue-500 px-4 py-2 rounded-full flex-row items-center justify-center ml-2"
-            >
-              <Feather
-                name="message-circle"
-                size={16}
-                color="white"
-                className="mr-1"
-              />
-              <Text className="text-white font-semibold text-base">
-                Message
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Name, Username & Bio */}
-      <View className="px-4 mt-2">
-        <Text className="text-xl font-bold">
-          {localProfile.firstName} {localProfile.lastName}
-        </Text>
-        <Text className="text-gray-500">@{localProfile.username}</Text>
-        <Text className="text-gray-900">{localProfile.bio}</Text>
-
-        {/* Followers / Following - NOW CLICKABLE */}
-        <View className="flex-row mb-4 mt-2 space-x-6">
-          {/* Following - Clickable */}
-          <TouchableOpacity
-            onPress={() => navigateToFollowList("following")}
-            activeOpacity={0.7}
-          >
-            <View className="flex-row items-center">
-              <Text className="font-bold text-gray-900">
-                {localProfile.following?.length ?? 0}
-              </Text>
-              <Text className="text-gray-500 ml-1">Following</Text>
-            </View>
-          </TouchableOpacity>
-
-          {/* Followers - Clickable */}
-          <TouchableOpacity
-            onPress={() => navigateToFollowList("followers")}
-            activeOpacity={0.7}
-          >
-            <View className="flex-row items-center">
-              <Text className="font-bold text-gray-900 ml-2">
-                {localProfile.followers?.length ?? 0}
-              </Text>
-              <Text className="text-gray-500 ml-1">Followers</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+    <ProfileHeader
+      user={localProfile}
+      isOwnProfile={isOwnProfile}
+      isFollowing={!!isFollowing}
+      isMutating={isMutating}
+      onFollowToggle={handleFollowToggle}
+      onNavigateToFollowList={navigateToFollowList}
+      showFollowButton={!isOwnProfile}
+    />
   );
 
   return (

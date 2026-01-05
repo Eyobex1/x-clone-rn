@@ -186,9 +186,10 @@ export default function FollowerListScreen() {
     [activeTab, router, username]
   );
 
-  const renderHeader = () => (
-    <View className="bg-white border-b border-gray-100">
-      <View className="flex-row items-center justify-between px-4 pt-3 pb-3">
+  // ⚡ Fixed: Sticky header component
+  const StickyHeader = () => (
+    <View className="bg-white">
+      <View className="flex-row items-center justify-between px-4 pt-3 pb-3 border-b border-gray-100">
         <TouchableOpacity
           onPress={() => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -222,9 +223,10 @@ export default function FollowerListScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Tabs - Fixed position */}
       <View
         ref={tabContainerRef}
-        className="relative"
+        className="relative border-b border-gray-100"
         onLayout={handleTabLayout}
       >
         <View className="flex-row">
@@ -272,8 +274,9 @@ export default function FollowerListScreen() {
     </View>
   );
 
-  const renderEmptyState = () => (
-    <View className="flex-1 items-center justify-center py-20 px-10">
+  // ⚡ Fixed: Create EmptyState as a separate component
+  const EmptyState = () => (
+    <View className="flex-1 items-center justify-center py-20 px-10 mt-16">
       <View className="w-24 h-24 rounded-full bg-gray-100 items-center justify-center mb-6">
         <Feather
           name={activeTab === "followers" ? "users" : "user-check"}
@@ -292,19 +295,20 @@ export default function FollowerListScreen() {
     </View>
   );
 
-  const renderFooter = () =>
-    localUsers.length > 0 && (
+  // ⚡ Fixed: Create Footer as a separate component
+  const Footer = () =>
+    localUsers.length > 0 ? (
       <View className="py-6 items-center">
         <Text className="text-gray-400 text-sm">
           You've seen all {localUsers.length} {activeTab}
         </Text>
       </View>
-    );
+    ) : null;
 
   if (isLoading && !refreshing) {
     return (
       <SafeAreaView className="flex-1 bg-white">
-        {renderHeader()}
+        <StickyHeader />
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#000" />
           <Text className="text-gray-500 mt-4">Loading {activeTab}...</Text>
@@ -316,7 +320,7 @@ export default function FollowerListScreen() {
   if (error) {
     return (
       <SafeAreaView className="flex-1 bg-white">
-        {renderHeader()}
+        <StickyHeader />
         <View className="flex-1 items-center justify-center px-10">
           <View className="w-20 h-20 rounded-full bg-red-100 items-center justify-center mb-6">
             <Feather name="wifi-off" size={36} color="#EF4444" />
@@ -340,6 +344,9 @@ export default function FollowerListScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
+      {/* ⚡ Fixed: Separate StickyHeader outside FlatList */}
+      <StickyHeader />
+
       <FlatList
         data={localUsers}
         keyExtractor={(item) => item._id}
@@ -352,7 +359,6 @@ export default function FollowerListScreen() {
             index={index}
           />
         )}
-        ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -363,9 +369,11 @@ export default function FollowerListScreen() {
             progressBackgroundColor="#F3F4F6"
           />
         }
-        ListEmptyComponent={renderEmptyState}
-        ListFooterComponent={renderFooter}
-        contentContainerStyle={{ flexGrow: 1 }}
+        ListEmptyComponent={EmptyState} // ⚡ Use component instead of function
+        ListFooterComponent={Footer} // ⚡ Use component instead of function
+        contentContainerStyle={{
+          flexGrow: 1,
+        }}
         ItemSeparatorComponent={() => (
           <View className="h-px bg-gray-100 mx-4" />
         )}

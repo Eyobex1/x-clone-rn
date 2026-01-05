@@ -1,21 +1,13 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
+import { View, Text, ActivityIndicator, RefreshControl } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
-import { format } from "date-fns";
 import { useRouter } from "expo-router";
 
 import EditProfileModal from "@/components/EditProfileModal";
 import PostsList from "@/components/PostsList";
 import PostComposer from "@/components/PostComposer";
 import SignOutButton from "@/components/SignOutButton";
+import ProfileHeader from "@/components/ProfileHeader";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useProfile } from "@/hooks/useProfile";
 import { usePosts } from "@/hooks/usePosts";
@@ -28,7 +20,7 @@ const ProfileScreens = () => {
 
   const {
     isEditModalVisible,
-    openEditModal,
+    openEditModal, // This is the function you need to pass
     closeEditModal,
     formData,
     saveProfile,
@@ -39,6 +31,13 @@ const ProfileScreens = () => {
 
   const { posts } = usePosts(currentUser?.username);
 
+  const goToUsersList = (type: "followers" | "following") => {
+    router.push({
+      pathname: "/screens/follower-list/follower-list",
+      params: { type, username: currentUser.username },
+    });
+  };
+
   if (isLoading || !currentUser) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
@@ -47,108 +46,16 @@ const ProfileScreens = () => {
     );
   }
 
-  const handleImagePress = (imageUri?: string) => {
-    if (!imageUri) return;
-    router.push({
-      pathname: "/screens/image-viewer/image-viewer",
-      params: { uri: encodeURIComponent(imageUri) },
-    });
-  };
-
-  const goToUsersList = (type: "followers" | "following") => {
-    router.push({
-      pathname: "/screens/follower-list/follower-list",
-      params: { type, username: currentUser.username },
-    });
-  };
-
   const renderProfileHeader = (
-    <View>
-      {/* Banner image */}
-      <TouchableOpacity
-        onPress={() => handleImagePress(currentUser.bannerImage)}
-        disabled={!currentUser.bannerImage}
-      >
-        <Image
-          source={{
-            uri:
-              currentUser.bannerImage ||
-              "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=400&fit=crop",
-          }}
-          className="w-full h-48"
-          resizeMode="cover"
-        />
-      </TouchableOpacity>
-
-      <View className="px-4 pb-4 border-b border-gray-100">
-        {/* Profile picture + edit button */}
-        <View className="flex-row justify-between items-end -mt-16 mb-4">
-          <TouchableOpacity
-            onPress={() => handleImagePress(currentUser.profilePicture)}
-            disabled={!currentUser.profilePicture}
-          >
-            <Image
-              source={{ uri: currentUser.profilePicture }}
-              className="w-32 h-32 rounded-full border-4 border-white"
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            className="border border-gray-300 px-6 py-2 rounded-full"
-            onPress={openEditModal}
-          >
-            <Text className="font-semibold text-gray-900">Edit profile</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* User info */}
-        <View className="mb-4">
-          <View className="flex-row items-center mb-1">
-            <Text className="text-xl font-bold text-gray-900 mr-1">
-              {currentUser.firstName} {currentUser.lastName}
-            </Text>
-            <Feather name="check-circle" size={20} color="#1DA1F2" />
-          </View>
-          <Text className="text-gray-500 mb-2">@{currentUser.username}</Text>
-          <Text className="text-gray-900 mb-3">{currentUser.bio}</Text>
-
-          <View className="flex-row items-center mb-2">
-            <Feather name="map-pin" size={16} color="#657786" />
-            <Text className="text-gray-500 ml-2">{currentUser.location}</Text>
-          </View>
-
-          <View className="flex-row items-center mb-3">
-            <Feather name="calendar" size={16} color="#657786" />
-            <Text className="text-gray-500 ml-2">
-              Joined {format(new Date(currentUser.createdAt), "MMMM yyyy")}
-            </Text>
-          </View>
-
-          <View className="flex-row">
-            <TouchableOpacity
-              className="mr-6"
-              onPress={() => goToUsersList("following")}
-            >
-              <Text className="text-gray-900">
-                <Text className="font-bold">
-                  {currentUser.following?.length}
-                </Text>
-                <Text className="text-gray-500"> Following</Text>
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={() => goToUsersList("followers")}>
-              <Text className="text-gray-900">
-                <Text className="font-bold">
-                  {currentUser.followers?.length}
-                </Text>
-                <Text className="text-gray-500"> Followers</Text>
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </View>
+    <ProfileHeader
+      user={currentUser}
+      isOwnProfile={true}
+      isFollowing={false}
+      isMutating={false}
+      onNavigateToFollowList={goToUsersList}
+      onEditProfile={openEditModal} // PASS THE FUNCTION HERE
+      showFollowButton={false}
+    />
   );
 
   const listHeader = (

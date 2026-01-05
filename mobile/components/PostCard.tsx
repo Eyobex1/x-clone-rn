@@ -192,25 +192,12 @@ const PostCard = ({
                       </TouchableOpacity>
                     </>
                   ) : (
-                    <>
-                      <TouchableOpacity className="flex-row items-center px-4 py-3">
-                        <Feather name="user-minus" size={18} color="#FF3B30" />
-                        <Text className="ml-3 text-[#FF3B30] font-medium">
-                          Unfollow
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity className="flex-row items-center px-4 py-3">
-                        <Feather name="flag" size={18} color="#8e8e93" />
-                        <Text className="ml-3 text-gray-600 font-medium">
-                          Report Post
-                        </Text>
-                      </TouchableOpacity>
-                    </>
+                    <></>
                   )}
                   <TouchableOpacity className="flex-row items-center px-4 py-3">
-                    <Feather name="copy" size={18} color="#8e8e93" />
+                    <Feather name="bookmark" size={18} color="#2bc09bff" />
                     <Text className="ml-3 text-gray-600 font-medium">
-                      Copy Link
+                      save post
                     </Text>
                   </TouchableOpacity>
                 </View>
